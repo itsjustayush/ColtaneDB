@@ -15,6 +15,7 @@ M0 — Foundations. Local acceptance checks pass; remote CI is pending. Owner-ap
 - Linked the Neon production branch and applied the private bucket/function policy. Existing `coltbucket` is private; `api` deployment 1 is active on Node 24.
 - Neon env pull was disabled throughout; no Neon database/storage credentials were written to the workspace.
 - Owner-provided local credentials are stored in Git-ignored `.env.local`; `.env.example` remains placeholder-only. Supabase and Firestore values remain placeholders because none were provided.
+- The attached Firebase Admin service-account JSON is present locally and Git-ignored; it has not been read into application code or used for provider access.
 - Apache-2.0 license was present before M0 and is preserved.
 
 ## Run and test
@@ -46,6 +47,7 @@ Neon Function URL: https://br-red-morning-az62ssg7-api.compute.c-3.ap-southeast-
 
 - Product: ColtaneDB. Language and CLI: Colt / `colt`. Extension: `.colt`. Diagnostics: `COLT####`.
 - M0–M3 are API/CLI only; UI Stage 0 begins at M4.
+- Owner confirmed to preserve milestone order; no UI Stage 0 before M1–M3. Owner also confirmed authentication and TenantGuard gates remain required before real database writes.
 - M1 implements only normative Tier-1 syntax. See [ADR-0004](adr/0004-language-and-project-decisions.md).
 - Supabase access is blocked pending owner-confirmed backup/restore evidence.
 - Owner-approved Neon deployment is limited to `coltbucket` and the minimal `api` function; it does not change the v1 provider/adapter contract. See [ADR-0005](adr/0005-neon-project-bootstrap.md).
