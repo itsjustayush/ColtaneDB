@@ -39,6 +39,14 @@ importers:
 
   packages/api-types: {}
 
+  packages/compiler:
+    dependencies:
+      '@coltanedb/parser':
+        specifier: workspace:*
+        version: link:../parser
+
+  packages/parser: {}
+
 packages:
 
   '@cacheable/memory@2.2.0':
