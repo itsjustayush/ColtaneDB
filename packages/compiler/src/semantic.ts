@@ -9,8 +9,8 @@ import type {
   TypeDefinition,
 } from '@coltanedb/parser';
 import { parse } from '@coltanedb/parser';
-import { generateStatement, backendFor } from './postgres.js';
-import type { Catalog, CompileResult, CompilerDiagnostic, CollectionModel, ExecutionPlan } from './types.js';
+import { generateStatement, backendFor } from './postgres.ts';
+import type { Catalog, CompileResult, CompilerDiagnostic, CollectionModel, ExecutionPlan } from './types.ts';
 
 const knownAnnotations = new Set([
   'key', 'unique', 'default', 'index', 'ttl', 'storage', 'timeseries', 'backend', 'readonly',
@@ -243,6 +243,7 @@ function validateRecordFields(
   model: CollectionModel,
   catalog: Catalog,
   diagnostics: CompilerDiagnostic[],
+  span: import('@coltanedb/parser').SourceSpan,
   externallySupplied: ReadonlySet<string> = new Set(),
 ): void {
   const supplied = new Set<string>();
@@ -259,7 +260,7 @@ function validateRecordFields(
   for (const field of model.statement.fields) {
     const hasDefault = field.annotations.some((annotation) => annotation.name === 'default');
     if (!field.optional && !hasDefault && !supplied.has(field.name) && !externallySupplied.has(field.name)) {
-      diagnostic(diagnostics, 'COLT2014', `Required field ${field.name} is missing.`, model.statement.span);
+      diagnostic(diagnostics, 'COLT2014', `Required field ${field.name} is missing.`, span);
     }
   }
 }
@@ -273,7 +274,7 @@ function validateWrite(
   const primary = model.statement.fields.find((field) => field.annotations.some((annotation) => annotation.name === 'key'));
   const generatedKey = statement.type === 'Create' && !statement.id && primary?.valueType.kind === 'primitive' && primary.valueType.name === 'uuid';
   const externalKey = statement.type === 'Put' || statement.id || generatedKey ? new Set(primary ? [primary.name] : []) : new Set<string>();
-  validateRecordFields(statement.fields, model, catalog, diagnostics, externalKey);
+  validateRecordFields(statement.fields, model, catalog, diagnostics, statement.span, externalKey);
   for (const item of statement.fields) {
     const field = fieldFor(model, item.name);
     if (field) validateAssignment(field, item.value, model, diagnostics);
@@ -398,8 +399,11 @@ export function compile(source: string, initialCatalog: ReadonlyMap<string, Coll
     }
 
     if (statement.type === 'Atomic') {
+      const atomicDiagnosticCount = diagnostics.length;
       const model = validateAtomic(statement, catalog, diagnostics);
-      if (model) steps.push(compileAtomic(statement, catalog, model));
+      if (model && diagnostics.length === atomicDiagnosticCount) {
+        steps.push(compileAtomic(statement, catalog, model));
+      }
       continue;
     }
 
@@ -410,9 +414,12 @@ export function compile(source: string, initialCatalog: ReadonlyMap<string, Coll
       continue;
     }
 
+    const diagnosticCount = diagnostics.length;
     validateOperation(statement, model, catalog, diagnostics);
 
-    steps.push(generateStatement(statement, model));
+    // Code generation runs only for statements that validated cleanly. The compiler
+    // never emits a plan for a statement it has already rejected.
+    if (diagnostics.length === diagnosticCount) steps.push(generateStatement(statement, model));
   }
 
   if (diagnostics.length > 0) return { diagnostics };

@@ -5,7 +5,7 @@ import type {
   SourcePosition,
   SourceSpan,
   TokenKind,
-} from './token.js';
+} from './token.ts';
 
 const keywords = new Set([
   'DEFINE',
@@ -95,7 +95,11 @@ class Lexer {
   private readonly tokens: ColtToken[] = [];
   private readonly diagnostics: ColtDiagnostic[] = [];
 
-  constructor(private readonly source: string) {}
+  private readonly source: string;
+
+  constructor(source: string) {
+    this.source = source;
+  }
 
   run(): LexResult {
     while (!this.atEnd()) {

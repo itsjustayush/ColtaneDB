@@ -15,6 +15,9 @@ importers:
         specifier: 1.4.8
         version: 1.4.8
     devDependencies:
+      '@coltanedb/cli':
+        specifier: workspace:*
+        version: link:packages/cli
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.11.0(jiti@2.7.0))
@@ -38,6 +41,15 @@ importers:
         version: 4.1.11(@types/node@24.19.0)(vite@8.3.1(@types/node@24.19.0)(jiti@2.7.0))
 
   packages/api-types: {}
+
+  packages/cli:
+    dependencies:
+      '@coltanedb/compiler':
+        specifier: workspace:*
+        version: link:../compiler
+      '@coltanedb/parser':
+        specifier: workspace:*
+        version: link:../parser
 
   packages/compiler:
     dependencies:

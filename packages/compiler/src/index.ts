@@ -1,5 +1,5 @@
-export { compile } from './semantic.js';
-export { postgresCapabilities } from './capabilities.js';
+export { compile } from './semantic.ts';
+export { postgresCapabilities } from './capabilities.ts';
 export type {
   Capabilities,
   Catalog,
@@ -10,4 +10,4 @@ export type {
   ParameterBinding,
   PlanStep,
   PostgresBackend,
-} from './types.js';
+} from './types.ts';

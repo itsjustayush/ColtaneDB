@@ -14,9 +14,9 @@ import type {
   RecordId,
   Statement,
   TypeDefinition,
-} from '../ast.js';
-import { lex } from '../lexer/lexer.js';
-import type { ColtDiagnostic, ColtToken, LexResult, SourceSpan } from '../lexer/token.js';
+} from '../ast.ts';
+import { lex } from '../lexer/lexer.ts';
+import type { ColtDiagnostic, ColtToken, LexResult, SourceSpan } from '../lexer/token.ts';
 
 const reservedStatements = new Set(['LIVE', 'SET', 'GET', 'RELATE']);
 const reservedClauses = new Set(['FETCH', 'NEAREST', 'SINCE', 'WINDOW']);
@@ -40,8 +40,11 @@ const precedence = new Map<string, number>([
 ]);
 
 class ParseFailure extends Error {
-  constructor(readonly diagnostic: ColtDiagnostic) {
+  readonly diagnostic: ColtDiagnostic;
+
+  constructor(diagnostic: ColtDiagnostic) {
     super(diagnostic.message);
+    this.diagnostic = diagnostic;
   }
 }
 

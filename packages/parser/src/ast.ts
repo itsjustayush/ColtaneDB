@@ -1,4 +1,4 @@
-import type { SourceSpan } from './lexer/token.js';
+import type { SourceSpan } from './lexer/token.ts';
 
 export interface Program {
   type: 'Program';

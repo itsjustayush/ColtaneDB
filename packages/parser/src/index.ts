@@ -1,5 +1,5 @@
-export { lex } from './lexer/lexer.js';
-export { parse } from './parser/parser.js';
+export { lex } from './lexer/lexer.ts';
+export { parse } from './parser/parser.ts';
 export type {
   Annotation,
   AtomicStatement,
@@ -16,7 +16,7 @@ export type {
   RecordId,
   Statement,
   TypeDefinition,
-} from './ast.js';
+} from './ast.ts';
 export type {
   ColtDiagnostic,
   ColtToken,
@@ -24,4 +24,4 @@ export type {
   SourcePosition,
   SourceSpan,
   TokenKind,
-} from './lexer/token.js';
+} from './lexer/token.ts';

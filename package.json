@@ -14,6 +14,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
+    "@coltanedb/cli": "workspace:*",
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.10.0",
     "eslint": "^10.0.1",

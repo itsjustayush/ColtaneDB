@@ -13,7 +13,7 @@ import type {
   Statement,
   TypeDefinition,
 } from '@coltanedb/parser';
-import type { CollectionModel, ParameterBinding, PlanStep, PostgresBackend } from './types.js';
+import type { CollectionModel, ParameterBinding, PlanStep, PostgresBackend } from './types.ts';
 
 interface SqlFragment {
   sql: string;

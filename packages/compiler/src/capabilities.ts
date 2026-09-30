@@ -1,4 +1,4 @@
-import type { Capabilities } from './types.js';
+import type { Capabilities } from './types.ts';
 
 export const postgresCapabilities: Readonly<Capabilities> = Object.freeze({
   joins: true,
