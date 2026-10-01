@@ -10,9 +10,12 @@ export class InMemoryStoreAdapter implements StoreAdapter {
     this.capabilities = capabilities;
   }
 
-  async connect(_context: TenantContext): Promise<void> {}
+  async connect(context: TenantContext): Promise<void> {
+    void context;
+  }
 
-  async healthCheck(_context: TenantContext): Promise<boolean> {
+  async healthCheck(context: TenantContext): Promise<boolean> {
+    void context;
     return true;
   }
 
@@ -23,9 +26,15 @@ export class InMemoryStoreAdapter implements StoreAdapter {
     return { rows: structuredClone(rows), affected: 0 };
   }
 
-  async apply(_change: unknown, _context: TenantContext): Promise<void> {}
+  async apply(change: unknown, context: TenantContext): Promise<void> {
+    void change;
+    void context;
+  }
 
-  async rebuild(_collection: string, _context: TenantContext): Promise<void> {}
+  async rebuild(collection: string, context: TenantContext): Promise<void> {
+    void collection;
+    void context;
+  }
 
   async usage(context: TenantContext): Promise<{ rows: number; bytes: number }> {
     const collections = this.rows.get(context.tenantId);

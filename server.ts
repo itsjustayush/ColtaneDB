@@ -3,7 +3,20 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { lex, parse } from './packages/parser/src/index.ts';
 import { compile, postgresCapabilities } from './packages/compiler/src/index.ts';
+import { createColtaneApi } from './packages/api/src/index.ts';
 import hello from './hello.ts';
+
+const apiSystem = createColtaneApi();
+apiSystem.authService.createInvite('COLTANE-ALPHA-2026', 720);
+const seedResult = apiSystem.authService.verifyInvite('COLTANE-ALPHA-2026', 'developer@coltanedb.dev');
+let defaultProjectId = '';
+if (seedResult.user) {
+  const seedProject = await apiSystem.projectService.createProject({
+    name: 'Default Workspace',
+    ownerId: seedResult.user.id,
+  });
+  defaultProjectId = seedProject.tenantId;
+}
 
 const PORT = Number(process.env.PORT ?? process.env.API_PORT ?? 3000);
 const HOST = '0.0.0.0';
@@ -114,6 +127,38 @@ const server = createServer(async (req, res) => {
   }
 
   try {
+    // 0. API v1 routes (Milestone 3 & 4)
+    if (url.pathname === '/api/v1/default-project') {
+      sendJson(res, 200, { tenantId: defaultProjectId });
+      return;
+    }
+    if (url.pathname.startsWith('/api/v1/')) {
+      let body: unknown = undefined;
+      if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+        const raw = await readBody(req);
+        if (raw) {
+          try {
+            body = JSON.parse(raw);
+          } catch {
+            sendJson(res, 400, { error: 'Invalid JSON body' });
+            return;
+          }
+        }
+      }
+      const apiHeaders: Record<string, string | undefined> = {};
+      for (const [k, v] of Object.entries(req.headers)) {
+        if (typeof v === 'string') apiHeaders[k.toLowerCase()] = v;
+      }
+      const apiResponse = await apiSystem.router.handle({
+        method: req.method ?? 'GET',
+        path: url.pathname,
+        headers: apiHeaders,
+        body,
+      });
+      sendJson(res, apiResponse.status, apiResponse.body);
+      return;
+    }
+
     // 1. Neon function route
     if (url.pathname === '/api/hello' || url.pathname === '/neon') {
       const helloResponse = await hello();

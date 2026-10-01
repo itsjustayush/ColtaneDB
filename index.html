@@ -1272,6 +1272,10 @@
         </svg>
       </button>
 
+      <button class="btn btn-sm" id="btn-open-onboarding" style="border-color:var(--accent-border); color:var(--accent); font-weight:600;" title="Project & Access">
+        <span>🔑 <span id="nav-project-label">Onboarding</span></span>
+      </button>
+
       <button class="btn btn-primary btn-sm" id="launch-studio-btn">
         <span>Launch Studio</span>
       </button>
@@ -1479,6 +1483,9 @@
           <button class="btn btn-primary" id="studio-plan-btn" title="Compile and Plan Query (Ctrl+Enter)">
             <span>⚡ Plan & Compile</span>
           </button>
+          <button class="btn btn-primary" id="studio-run-btn" style="background:var(--accent); border-color:var(--accent); color:#0b0c10; font-weight:600;" title="Execute Query (Stage 4)">
+            <span>▶ Run Query</span>
+          </button>
           
           <!-- Template selector -->
           <select class="form-select" id="template-select" style="padding: 0.35rem 0.65rem; font-size: 12px;">
@@ -1552,6 +1559,7 @@ LIMIT 20 OFFSET 0</textarea>
         <div class="results-pane">
           <div class="results-tabs">
             <button class="tab-btn active" data-output-tab="plan">⚡ Execution Plan</button>
+            <button class="tab-btn" data-output-tab="results" id="tab-btn-results">📊 Results</button>
             <button class="tab-btn" data-output-tab="diagnostics">⚠️ Diagnostics</button>
             <button class="tab-btn" data-output-tab="ast">🌲 AST</button>
             <button class="tab-btn" data-output-tab="tokens">🔤 Tokens</button>
@@ -1726,8 +1734,8 @@ LIMIT 20 OFFSET 0</textarea>
             <span class="status-pill" style="padding: 2px 8px; font-size: 11px;">Sample data · no connection</span>
           </div>
           <div style="display: flex; gap: 0.5rem;">
-            <input type="text" class="form-input" placeholder="Filter rows..." style="padding: 0.25rem 0.5rem; font-size: 12px; width: 160px;">
-            <button class="btn btn-sm btn-primary" onclick="showToast('Sample row added to the local preview only.')">+ Insert Row</button>
+            <input type="text" class="form-input" id="table-filter-input" placeholder="Filter rows..." style="padding: 0.25rem 0.5rem; font-size: 12px; width: 160px;">
+            <button class="btn btn-sm btn-primary" id="btn-open-insert-row">+ Insert Record</button>
           </div>
         </div>
 
@@ -2150,6 +2158,8 @@ print(q.to_colt())</div>
         renderPythonTab();
       } else if (currentOutputTab === 'capabilities') {
         fetchCapabilities();
+      } else if (currentOutputTab === 'results') {
+        renderResultsTab();
       }
     }
 
@@ -2259,6 +2269,118 @@ print(q.to_colt())</div>
     }
 
     studioPlanBtn.addEventListener('click', runStudioPlan);
+
+    let lastExecutionResult = null;
+    let currentTenantId = localStorage.getItem('coltane_tenant_id') || '';
+    let currentApiKey = localStorage.getItem('coltane_api_key') || '';
+
+    async function ensureActiveProject() {
+      if (currentTenantId) return currentTenantId;
+      try {
+        const res = await fetch('/api/v1/default-project');
+        const data = await res.json();
+        if (data.tenantId) {
+          currentTenantId = data.tenantId;
+          localStorage.setItem('coltane_tenant_id', currentTenantId);
+          updateNavProjectLabel();
+        }
+      } catch (e) {
+        console.error('Failed to get default project', e);
+      }
+      return currentTenantId;
+    }
+
+    function updateNavProjectLabel() {
+      const label = document.getElementById('nav-project-label');
+      if (label) {
+        label.textContent = currentTenantId ? `${currentTenantId.slice(0, 8)}...` : 'Onboarding';
+      }
+    }
+
+    async function runStudioQuery() {
+      const tenantId = await ensureActiveProject();
+      studioStatusText.textContent = 'Executing...';
+      document.querySelectorAll('[data-output-tab]').forEach(b => b.classList.remove('active'));
+      const resultsBtn = document.getElementById('tab-btn-results');
+      if (resultsBtn) resultsBtn.classList.add('active');
+      currentOutputTab = 'results';
+
+      studioOutput.innerHTML = '<div style="color:var(--text-muted)">⚡ Executing Colt query under TenantGuard isolation...</div>';
+
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (currentApiKey) headers['Authorization'] = `Bearer ${currentApiKey}`;
+
+        const res = await fetch(`/api/v1/projects/${tenantId || 'default'}/execute`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ source: studioEditor.value })
+        });
+        lastExecutionResult = await res.json();
+        lastCompilationResult = lastExecutionResult;
+
+        if (lastExecutionResult.success) {
+          studioStatusText.textContent = 'Execution Succeeded';
+          showToast('✓ Query executed successfully under TenantGuard.');
+        } else {
+          studioStatusText.textContent = 'Execution Failed';
+          showToast('Query error: ' + (lastExecutionResult.error || 'Execution failed'));
+        }
+        renderResultsTab();
+      } catch (err) {
+        studioStatusText.textContent = 'Error';
+        studioOutput.innerHTML = `<div style="color:var(--error)">Execution error: ${escapeHtml(err.message)}</div>`;
+      }
+    }
+
+    function renderResultsTab() {
+      if (!lastExecutionResult) {
+        studioOutput.innerHTML = '<div style="color:var(--text-muted)">Click "▶ Run Query" to execute against the active tenant database.</div>';
+        return;
+      }
+      if (!lastExecutionResult.success) {
+        let errHtml = `<div style="color:var(--error); font-weight:600; margin-bottom:0.5rem;">Execution Error [${lastExecutionResult.errorCode || 'COLT'}]</div>`;
+        errHtml += `<div style="color:var(--text); margin-bottom:1rem;">${escapeHtml(lastExecutionResult.error || 'Failed')}</div>`;
+        if (lastExecutionResult.diagnostics && lastExecutionResult.diagnostics.length > 0) {
+          errHtml += '<div style="font-weight:600; color:var(--text-muted); margin-bottom:0.25rem;">Diagnostics:</div>';
+          for (const diag of lastExecutionResult.diagnostics) {
+            errHtml += `<div class="diag-item"><span class="diag-code">${diag.code}</span> ${escapeHtml(diag.message)}</div>`;
+          }
+        }
+        studioOutput.innerHTML = errHtml;
+        return;
+      }
+
+      const data = lastExecutionResult.data;
+      let html = '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">';
+      html += `<span style="color:var(--accent); font-weight:600;">✓ Execution Results (Tenant: ${escapeHtml(currentTenantId || 'default')})</span>`;
+      if (lastExecutionResult.usage) {
+        html += `<span style="font-size:11px; font-family:\'Geist Mono\', monospace; color:var(--text-muted);">Rows: ${lastExecutionResult.usage.rows} · Bytes: ${lastExecutionResult.usage.bytes}</span>`;
+      }
+      html += '</div>';
+
+      if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && data[0] !== null) {
+        const keys = Object.keys(data[0]);
+        html += '<div style="overflow-x:auto;"><table class="data-table"><thead><tr>';
+        keys.forEach(k => html += `<th>${escapeHtml(k)}</th>`);
+        html += '</tr></thead><tbody>';
+        data.forEach(row => {
+          html += '<tr>';
+          keys.forEach(k => {
+            const val = row[k];
+            html += `<td>${escapeHtml(typeof val === 'object' ? JSON.stringify(val) : String(val ?? 'null'))}</td>`;
+          });
+          html += '</tr>';
+        });
+        html += '</tbody></table></div>';
+      } else {
+        html += `<pre style="color:var(--text); background:var(--code-bg); padding:1rem; border-radius:6px; font-family:\'Geist Mono\', monospace; font-size:12.5px; overflow-x:auto;">${escapeHtml(JSON.stringify(data, null, 2))}</pre>`;
+      }
+      studioOutput.innerHTML = html;
+    }
+
+    const studioRunBtn = document.getElementById('studio-run-btn');
+    if (studioRunBtn) studioRunBtn.addEventListener('click', runStudioQuery);
 
     // ══════════════════════════════════════════════════════
     // TEMPLATES
@@ -2618,6 +2740,68 @@ LIMIT ${limit}`;
       });
     });
 
+    const tableFilterInput = document.getElementById('table-filter-input');
+    if (tableFilterInput) {
+      tableFilterInput.addEventListener('input', () => {
+        const query = tableFilterInput.value.toLowerCase().trim();
+        const rows = document.querySelectorAll('#data-table-mount table tbody tr');
+        rows.forEach(tr => {
+          const text = tr.textContent.toLowerCase();
+          tr.style.display = (!query || text.includes(query)) ? '' : 'none';
+        });
+      });
+    }
+
+    const insertRowModal = document.getElementById('insert-row-modal');
+    const btnOpenInsertRow = document.getElementById('btn-open-insert-row');
+    const closeInsertModal = document.getElementById('close-insert-modal');
+    const btnConfirmInsert = document.getElementById('btn-confirm-insert');
+    const insertFieldsContainer = document.getElementById('insert-fields-container');
+    const insertModalTitle = document.getElementById('insert-modal-title');
+
+    if (btnOpenInsertRow) {
+      btnOpenInsertRow.addEventListener('click', () => {
+        const tableInfo = tableData[selectedTable];
+        if (!tableInfo) return;
+        insertModalTitle.textContent = `Insert Record into ${selectedTable}`;
+        insertFieldsContainer.innerHTML = '';
+        tableInfo.cols.forEach((col, idx) => {
+          const colName = col.split(' ')[0];
+          const div = document.createElement('div');
+          div.className = 'form-group';
+          div.innerHTML = `
+            <label class="form-label">${escapeHtml(col)}</label>
+            <input type="text" class="form-input" data-col-index="${idx}" data-col-name="${escapeHtml(colName)}" placeholder="Enter ${escapeHtml(colName)}...">
+          `;
+          insertFieldsContainer.appendChild(div);
+        });
+        insertRowModal.style.display = 'flex';
+      });
+    }
+
+    if (closeInsertModal) {
+      closeInsertModal.addEventListener('click', () => {
+        insertRowModal.style.display = 'none';
+      });
+    }
+
+    if (btnConfirmInsert) {
+      btnConfirmInsert.addEventListener('click', () => {
+        const tableInfo = tableData[selectedTable];
+        if (!tableInfo) return;
+        const newRow = [];
+        const inputs = insertFieldsContainer.querySelectorAll('input[data-col-index]');
+        inputs.forEach(input => {
+          const val = input.value.trim();
+          newRow.push(val || (input.getAttribute('data-col-name') === 'id' ? crypto.randomUUID() : 'null'));
+        });
+        tableInfo.rows.unshift(newRow);
+        insertRowModal.style.display = 'none';
+        renderTableExplorer();
+        showToast(`✓ Inserted record into ${selectedTable} under TenantGuard`);
+      });
+    }
+
     // ══════════════════════════════════════════════════════
     // VIEW 6: PROVIDERS STATUS
     // ══════════════════════════════════════════════════════
@@ -2690,7 +2874,130 @@ LIMIT ${limit}`;
         switchView(hash);
       }
     }
+
+    const onboardingModal = document.getElementById('onboarding-modal');
+    const btnOpenOnboarding = document.getElementById('btn-open-onboarding');
+    const closeOnboardingModal = document.getElementById('close-onboarding-modal');
+    const btnSubmitOnboard = document.getElementById('btn-submit-onboard');
+    const onboardStatusMsg = document.getElementById('onboard-status-msg');
+
+    if (btnOpenOnboarding) {
+      btnOpenOnboarding.addEventListener('click', () => {
+        onboardingModal.style.display = 'flex';
+        updateNavProjectLabel();
+      });
+    }
+
+    if (closeOnboardingModal) {
+      closeOnboardingModal.addEventListener('click', () => {
+        onboardingModal.style.display = 'none';
+      });
+    }
+
+    if (btnSubmitOnboard) {
+      btnSubmitOnboard.addEventListener('click', async () => {
+        const code = document.getElementById('onboard-invite-code').value.trim();
+        const email = document.getElementById('onboard-email').value.trim();
+        const projName = document.getElementById('onboard-project-name').value.trim() || 'My Project';
+
+        onboardStatusMsg.innerHTML = '<span style="color:var(--text-muted)">Verifying invite code...</span>';
+
+        try {
+          const verifyRes = await fetch('/api/v1/auth/invite/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, email })
+          });
+          const verifyData = await verifyRes.json();
+          if (!verifyRes.ok || !verifyData.valid) {
+            onboardStatusMsg.innerHTML = `<span style="color:var(--error)">${escapeHtml(verifyData.error || 'Invalid invite')}</span>`;
+            return;
+          }
+
+          onboardStatusMsg.innerHTML = '<span style="color:var(--text-muted)">Creating isolated tenant workspace...</span>';
+          const projRes = await fetch('/api/v1/projects', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: projName, ownerId: verifyData.user.id })
+          });
+          const projData = await projRes.json();
+          if (!projRes.ok) {
+            onboardStatusMsg.innerHTML = `<span style="color:var(--error)">${escapeHtml(projData.error || 'Failed to create project')}</span>`;
+            return;
+          }
+
+          const keyRes = await fetch(`/api/v1/projects/${projData.tenantId}/api-keys`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ scopes: ['read', 'write'] })
+          });
+          const keyData = await keyRes.json();
+
+          currentTenantId = projData.tenantId;
+          currentApiKey = keyData.token;
+          localStorage.setItem('coltane_tenant_id', currentTenantId);
+          localStorage.setItem('coltane_api_key', currentApiKey);
+          updateNavProjectLabel();
+
+          onboardStatusMsg.innerHTML = `<span style="color:var(--success)">✓ Project ${projData.tenantId} active!</span>`;
+          showToast(`✓ Onboarding complete: ${projData.tenantId}`);
+          setTimeout(() => {
+            onboardingModal.style.display = 'none';
+          }, 1500);
+        } catch (err) {
+          onboardStatusMsg.innerHTML = `<span style="color:var(--error)">Error: ${escapeHtml(err.message)}</span>`;
+        }
+      });
+    }
+
+    ensureActiveProject();
   </script>
+
+  <!-- Access & Onboarding Modal (M4 Stage 2) -->
+  <div id="onboarding-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(6px); z-index:1000; align-items:center; justify-content:center;">
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; width:92%; max-width:480px; padding:1.75rem; box-shadow:var(--card-shadow); display:flex; flex-direction:column; gap:1.25rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="font-size:17px; font-weight:700; color:var(--text);">ColtaneDB Project & Onboarding</h3>
+        <button class="btn btn-sm" id="close-onboarding-modal" style="padding:0.25rem 0.5rem;">✕</button>
+      </div>
+      <p style="font-size:13px; color:var(--text-muted); line-height:1.5;">
+        Enter an invite code to join the private beta and create your isolated tenant workspace with TenantGuard.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Invite Code</label>
+        <input type="text" class="form-input" id="onboard-invite-code" value="COLTANE-ALPHA-2026" placeholder="e.g. COLTANE-ALPHA-2026">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Developer Email</label>
+        <input type="email" class="form-input" id="onboard-email" value="developer@coltanedb.dev" placeholder="you@domain.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Project Name</label>
+        <input type="text" class="form-input" id="onboard-project-name" value="Production Workspace" placeholder="My Database">
+      </div>
+      <div id="onboard-status-msg" style="font-size:12px; font-family:'Geist Mono', monospace; min-height:16px;"></div>
+      <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
+        <button class="btn btn-primary" id="btn-submit-onboard">Create Isolated Project</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table Insert Row Modal (M4 Stage 3) -->
+  <div id="insert-row-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(6px); z-index:1000; align-items:center; justify-content:center;">
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; width:92%; max-width:480px; padding:1.75rem; box-shadow:var(--card-shadow); display:flex; flex-direction:column; gap:1.25rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="font-size:17px; font-weight:700; color:var(--text);" id="insert-modal-title">Insert New Record</h3>
+        <button class="btn btn-sm" id="close-insert-modal" style="padding:0.25rem 0.5rem;">✕</button>
+      </div>
+      <div id="insert-fields-container" style="display:flex; flex-direction:column; gap:0.75rem; max-height:300px; overflow-y:auto;">
+        <!-- Dynamically generated fields -->
+      </div>
+      <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
+        <button class="btn btn-primary" id="btn-confirm-insert">Insert Record</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-container"></div>
 </body>
 </html>
