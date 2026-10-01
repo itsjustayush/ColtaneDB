@@ -306,6 +306,13 @@ server.on('error', (err: NodeJS.ErrnoException) => {
   }
 });
 
-server.listen(PORT, HOST, () => {
-  console.log(`ColtaneDB dev server listening at http://${HOST}:${PORT}`);
-});
+if (!process.env.VERCEL) {
+  server.listen(PORT, HOST, () => {
+    console.log(`ColtaneDB dev server listening at http://${HOST}:${PORT}`);
+  });
+}
+
+export default function handler(req: IncomingMessage, res: ServerResponse): void {
+  server.emit('request', req, res);
+}
+

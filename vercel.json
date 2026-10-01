@@ -3,6 +3,9 @@
   "framework": null,
   "buildCommand": "pnpm build",
   "installCommand": "pnpm install --frozen-lockfile",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/server.ts" }
+  ],
   "functions": {
     "server.ts": {
       "includeFiles": "{index.html,examples/library.colt}"
