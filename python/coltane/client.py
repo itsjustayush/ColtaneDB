@@ -120,5 +120,17 @@ class Client:
         return ParseResult(ast=res.get("ast", {}), diagnostics=diags)
 
     def execute(self, source: str) -> PlanResult:
-        """Compatibility alias for plan(); this preview does not execute queries."""
+        """Compile and plan a Colt script; alias for plan()."""
         return self.plan(source)
+
+    def execute_project(
+        self,
+        tenant_id: str,
+        source: str,
+        parameters: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Execute a Colt query against a specific tenant project via ColtaneDB API."""
+        return self._post(
+            f"/api/v1/projects/{tenant_id}/execute",
+            {"source": source, "parameters": parameters or {}},
+        )

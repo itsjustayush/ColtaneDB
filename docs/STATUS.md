@@ -22,10 +22,11 @@ M2 & M2.1 — Tenancy Core and Provider Plugin Framework completed. Multi-provid
   - `TursoStoreAdapter`: SQLite family with injected `_tid` row isolation.
   - `SupabaseStoreAdapter`: Postgres family with strict `ct_<tid>` schema naming and hard guard against direct `public` schema access.
   - `MongoStoreAdapter`: Document family with mandatory `{ _tid }` document injection and query scoping.
-  - `FirestoreStoreAdapter`: Document family with path-based isolation `tenants/{tid}/c/{collection}/d/{id}`.
-- M3 API Layer: Hono-based API (`packages/api`) with API key generation/hashing (`colt_...`), project management, rate limiter, limits profiles, global kill-switch, and query executor passing queries through `TenantGuard` and `MultiBackendStoreAdapter`.
+  - `FirestoreStoreAdapter`: Document family with path-based isolation `tenants/{tid}/c/{collection}/d/{id}` powered by `firebase-admin` (v14.5) with discrete, JSON, base64, and file-path credential loading.
+  - `FirebaseAdminAuthClient`: Direct integration with `firebase-admin/auth` verifying Google OAuth and Firebase ID tokens (`/api/v1/auth/firebase` and `Bearer` token verification).
+- M3 API Layer: Hono-based API (`packages/api`) with API key generation/hashing (`colt_...`), Firebase Auth integration, project management, rate limiter, limits profiles, global kill-switch, and query executor passing queries through `TenantGuard` and `MultiBackendStoreAdapter`.
 - Production & Vercel Readiness: Catch-all serverless rewrites configured in `vercel.json` routing to exported handler in `server.ts`; `.vercelignore` isolates secret boundaries.
-- Clean credential posture: secrets live solely in `.env.local` (Git-ignored) and provider secret stores; `.env.example` updated with Supabase placeholders; no provider credentials in tracked code or client bundles.
+- Clean credential posture: secrets live solely in `.env.local` (Git-ignored) and provider secret stores; `.env.example` updated with Supabase and Firebase placeholders; no provider credentials in tracked code or client bundles.
 
 ## Run and test
 
@@ -37,7 +38,7 @@ corepack pnpm test
 corepack pnpm build
 ```
 
-Current test suite: **153 tests passing across 14 test files** (adapters, provider-plugin, compiler, parser, conformance, fuzz, lexer, tenant-guard, tenant-manager, tenant-context, api, cross-tenant-leak, m4-console, foundation).
+Current test suite: **157 tests passing across 15 test files** (adapters, provider-plugin, compiler, parser, conformance, fuzz, lexer, tenant-guard, tenant-manager, tenant-context, api, firebase, cross-tenant-leak, m4-console, foundation).
 
 ## Not yet verified / blocked
 

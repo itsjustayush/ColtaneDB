@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import type { ApiKey, Invite, User } from '../../api-types/src/index.js';
 
-import { parseTenantId } from '../../tenant/src/index.js';
+import { createFirebaseAuthClientFromEnv, type FirebaseAuthClient, parseTenantId } from '../../tenant/src/index.js';
 
 export class AuthError extends Error {
   constructor(message: string, readonly code: string) {
@@ -19,6 +19,32 @@ export class AuthService {
   private readonly users = new Map<string, User>();
   private readonly usersByEmail = new Map<string, User>();
   private readonly apiKeys = new Map<string, ApiKey & { secretHash: string }>();
+  private readonly firebaseAuth: FirebaseAuthClient;
+
+  constructor(firebaseAuth?: FirebaseAuthClient) {
+    this.firebaseAuth = firebaseAuth ?? createFirebaseAuthClientFromEnv();
+  }
+
+  async verifyFirebaseToken(idToken: string): Promise<{ valid: boolean; user?: User; error?: string }> {
+    try {
+      const verified = await this.firebaseAuth.verifyIdToken(idToken);
+      const email = verified.email ?? `${verified.uid}@coltanedb.dev`;
+      let user = this.usersByEmail.get(email) ?? this.users.get(verified.uid);
+      if (!user) {
+        user = {
+          id: verified.uid,
+          email,
+          createdAt: new Date().toISOString(),
+        };
+        this.users.set(user.id, user);
+        this.usersByEmail.set(email, user);
+      }
+      return { valid: true, user };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { valid: false, error: message };
+    }
+  }
 
   createInvite(code: string, expiresInHours = 48): Invite {
     const expiresAt = new Date(Date.now() + expiresInHours * 3600 * 1000).toISOString();

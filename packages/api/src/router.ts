@@ -77,6 +77,19 @@ export class ApiRouter {
         return { status: 200, body: res };
       }
 
+      // 4b. Firebase Auth / Google OAuth ID Token
+      if (method === 'POST' && path === '/api/v1/auth/firebase') {
+        const payload = (body ?? {}) as { idToken: string };
+        if (!payload.idToken) {
+          return { status: 400, body: { error: 'idToken is required.' } };
+        }
+        const res = await this.authService.verifyFirebaseToken(payload.idToken);
+        if (!res.valid) {
+          return { status: 401, body: res };
+        }
+        return { status: 200, body: res };
+      }
+
       // 5. Create Project
       if (method === 'POST' && path === '/api/v1/projects') {
         const payload = (body ?? {}) as CreateProjectRequest;
@@ -113,18 +126,25 @@ export class ApiRouter {
         const tenantId = executeMatch[1];
         const authHeader = headers['authorization'] || headers['Authorization'];
 
-        // Require API Key Authentication for execution
+        // Require API Key or Firebase Token Authentication for execution
         if (authHeader) {
           const token = authHeader.replace(/^Bearer\s+/i, '');
-          const authResult = this.authService.authenticateApiKey(token);
-          if (!authResult.valid) {
-            return { status: 401, body: { error: `Unauthorized: ${authResult.error}` } };
-          }
-          if (authResult.apiKey?.tenantId !== tenantId) {
-            return {
-              status: 403,
-              body: { error: 'Forbidden: API key does not have access to this project.' },
-            };
+          if (token.startsWith('clt_live_')) {
+            const authResult = this.authService.authenticateApiKey(token);
+            if (!authResult.valid) {
+              return { status: 401, body: { error: `Unauthorized: ${authResult.error}` } };
+            }
+            if (authResult.apiKey?.tenantId !== tenantId) {
+              return {
+                status: 403,
+                body: { error: 'Forbidden: API key does not have access to this project.' },
+              };
+            }
+          } else {
+            const firebaseAuthResult = await this.authService.verifyFirebaseToken(token);
+            if (!firebaseAuthResult.valid) {
+              return { status: 401, body: { error: `Unauthorized: ${firebaseAuthResult.error}` } };
+            }
           }
         }
 

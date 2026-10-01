@@ -1,8 +1,11 @@
 import { postgresCapabilities } from '../../compiler/src/index.js';
 import {
+  createFirebaseAuthClientFromEnv,
+  createFirestoreClientFromEnv,
   createTenantContext,
+  type FirebaseAuthClient,
+  type FirestoreClient,
   FirestoreStoreAdapter,
-  InMemoryFirestoreClient,
   InMemoryLibsqlClient,
   InMemoryMongoDatabase,
   InMemoryRedisClient,
@@ -46,8 +49,10 @@ export function createColtaneApi(options: {
   storeAdapter?: StoreAdapter;
   tenantRepository?: TenantRepository;
   initialKillSwitch?: boolean;
+  firestoreClient?: FirestoreClient;
+  firebaseAuthClient?: FirebaseAuthClient;
 } = {}): ColtaneApiSystem {
-  const authService = new AuthService();
+  const authService = new AuthService(options.firebaseAuthClient ?? createFirebaseAuthClientFromEnv());
   const tenantRepository = options.tenantRepository ?? new InMemoryTenantRepository();
 
   let storeAdapter = options.storeAdapter;
@@ -75,8 +80,9 @@ export function createColtaneApi(options: {
     // MongoDB Atlas
     multi.registerAdapter('mongodb', new MongoStoreAdapter(new InMemoryMongoDatabase()));
 
-    // Firebase Firestore
-    multi.registerAdapter('firestore', new FirestoreStoreAdapter(new InMemoryFirestoreClient()));
+    // Firebase Firestore (uses live FirebaseAdminFirestoreClient if credentials in env)
+    const firestoreClient = options.firestoreClient ?? createFirestoreClientFromEnv();
+    multi.registerAdapter('firestore', new FirestoreStoreAdapter(firestoreClient));
 
     storeAdapter = multi;
   }

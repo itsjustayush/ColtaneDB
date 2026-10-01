@@ -11,8 +11,20 @@ export { InMemoryLibsqlClient, TursoStoreAdapter } from './turso-adapter.js';
 export type { LibsqlClient, LibsqlQueryResult } from './turso-adapter.js';
 export { InMemoryMongoDatabase, MongoStoreAdapter } from './mongodb-adapter.js';
 export type { MongoCollection, MongoDatabase } from './mongodb-adapter.js';
-export { InMemoryFirestoreClient, FirestoreStoreAdapter } from './firestore-adapter.js';
+export {
+  createFirestoreClientFromEnv,
+  FirebaseAdminFirestoreClient,
+  FirestoreStoreAdapter,
+  getOrInitializeFirebaseApp,
+  InMemoryFirestoreClient,
+} from './firestore-adapter.js';
 export type { FirestoreClient, FirestoreCollectionRef, FirestoreDocumentRef } from './firestore-adapter.js';
+export {
+  createFirebaseAuthClientFromEnv,
+  FirebaseAdminAuthClient,
+  InMemoryFirebaseAuthClient,
+} from './firebase-auth.js';
+export type { FirebaseAuthClient, FirebaseVerifiedUser } from './firebase-auth.js';
 export {
   ProviderRegistry,
   defaultManifests,

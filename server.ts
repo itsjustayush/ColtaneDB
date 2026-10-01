@@ -1,10 +1,23 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { lex, parse } from './packages/parser/src/index.ts';
 import { compile, postgresCapabilities } from './packages/compiler/src/index.ts';
 import { createColtaneApi } from './packages/api/src/index.ts';
 import hello from './hello.ts';
+
+if (typeof process.loadEnvFile === 'function') {
+  try {
+    if (existsSync('.env.local')) {
+      process.loadEnvFile('.env.local');
+    } else if (existsSync('.env')) {
+      process.loadEnvFile('.env');
+    }
+  } catch {
+    // environment already configured or unsupported
+  }
+}
 
 const apiSystem = createColtaneApi();
 apiSystem.authService.createInvite('COLTANE-ALPHA-2026', 720);
@@ -77,38 +90,61 @@ LIMIT 20 OFFSET 0`;
 }
 
 function getProvidersStatus() {
+  const hasFirebase = Boolean(process.env.FIREBASE_PROJECT_ID || process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+  const hasRedis = Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+  const hasSupabase = Boolean(process.env.SUPABASE_URL || process.env.SUPABASE_ANON_KEY);
+  const hasNeon = Boolean(process.env.DATABASE_URL);
+  const hasTurso = Boolean(process.env.TURSO_DATABASE_URL);
+  const hasMongo = Boolean(process.env.MONGODB_URI);
+
   return [
     {
       id: 'neon',
-      name: 'PostgreSQL plan target',
-      role: 'Colt compiler output; no database connection or execution.',
-      status: 'plan-only',
+      name: 'Neon Serverless Postgres',
+      role: 'PostgreSQL primary store with schema generation and branching support.',
+      status: hasNeon ? 'active' : 'plan-only',
       target: '@backend(neon)',
-      features: ['Schema and query plan generation'],
+      features: ['Schema management', 'Branching', 'Transactional queries', 'Strict tenant schemas'],
+    },
+    {
+      id: 'supabase',
+      name: 'Supabase Postgres',
+      role: 'Relational data store with ct_<tid> tenant schema isolation.',
+      status: hasSupabase ? 'active' : 'available',
+      target: '@backend(supabase)',
+      features: ['Schema isolation', 'Row security', 'Direct SQL routing'],
     },
     {
       id: 'redis',
       name: 'Upstash Redis',
-      role: 'Adapter planned; not available in this preview.',
-      status: 'planned',
+      role: 'Serverless KV cache with t:{tid}: key namespace isolation.',
+      status: hasRedis ? 'active' : 'available',
       target: '@backend(redis)',
-      features: [],
+      features: ['REST protocol', 'Sub-millisecond KV', 'Prefix isolation'],
+    },
+    {
+      id: 'firebase',
+      name: 'Firebase Firestore & Auth',
+      role: 'Document collection store with tenants/{tid}/c/{col}/d path isolation and Google OAuth ID token verification.',
+      status: hasFirebase ? 'active' : 'available',
+      target: '@backend(firestore)',
+      features: ['Document store', 'Google OAuth & Firebase Auth tokens', 'Nested path tenant isolation', 'Admin SDK v14'],
     },
     {
       id: 'mongodb',
       name: 'MongoDB Atlas',
-      role: 'Adapter planned; not available in this preview.',
-      status: 'planned',
+      role: 'Document collection store with _tid tenant attribute injection.',
+      status: hasMongo ? 'active' : 'available',
       target: '@backend(mongodb)',
-      features: [],
+      features: ['Document store', '_tid query and mutation injection'],
     },
     {
-      id: 'firebase',
-      name: 'Firebase Firestore',
-      role: 'Adapter planned; not available in this preview.',
-      status: 'planned',
-      target: '@backend(firestore)',
-      features: [],
+      id: 'turso',
+      name: 'Turso libSQL',
+      role: 'Edge SQLite database engine with shared schema and _tid column isolation.',
+      status: hasTurso ? 'active' : 'available',
+      target: '@backend(turso)',
+      features: ['Edge libSQL', '_tid row-level scoping'],
     },
   ];
 }
