@@ -65,6 +65,63 @@ export class InMemoryRedisClient implements RedisClient {
   }
 }
 
+export class UpstashRestRedisClient implements RedisClient {
+  constructor(
+    private readonly url: string,
+    private readonly token: string,
+  ) {}
+
+  private async command(...args: unknown[]): Promise<unknown> {
+    const cleanUrl = this.url.replace(/\/+$/, '');
+    const res = await fetch(cleanUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(args),
+    });
+    if (!res.ok) {
+      throw new Error(`Upstash Redis HTTP error: ${res.status} ${res.statusText}`);
+    }
+    const data = (await res.json()) as { result?: unknown; error?: string };
+    if (data.error) throw new Error(data.error);
+    return data.result;
+  }
+
+  async get(key: string): Promise<string | null> {
+    const res = await this.command('GET', key);
+    return typeof res === 'string' ? res : null;
+  }
+
+  async set(key: string, value: string, opts?: { ex?: number }): Promise<string | null> {
+    if (opts?.ex) {
+      await this.command('SET', key, value, 'EX', opts.ex);
+    } else {
+      await this.command('SET', key, value);
+    }
+    return 'OK';
+  }
+
+  async del(...keys: string[]): Promise<number> {
+    const res = await this.command('DEL', ...keys);
+    return typeof res === 'number' ? res : 0;
+  }
+
+  async scan(cursor: string, opts?: { match?: string; count?: number }): Promise<[string, string[]]> {
+    const cmd: unknown[] = ['SCAN', cursor];
+    if (opts?.match) cmd.push('MATCH', opts.match);
+    if (opts?.count) cmd.push('COUNT', opts.count);
+    const res = (await this.command(...cmd)) as [string, string[]];
+    return res ?? ['0', []];
+  }
+
+  async exists(...keys: string[]): Promise<number> {
+    const res = await this.command('EXISTS', ...keys);
+    return typeof res === 'number' ? res : 0;
+  }
+}
+
 export class RedisStoreAdapter implements StoreAdapter {
   readonly capabilities: Readonly<Capabilities>;
 

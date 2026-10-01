@@ -93,6 +93,15 @@ export class InMemorySqlExecutor implements SqlExecutor {
   getSchemaData(schema: string, table: string): Record<string, unknown>[] {
     return this.schemas.get(schema)?.get(table) ?? [];
   }
+
+  seed(tenantId: string, collection: string, rows: readonly unknown[]): void {
+    const schema = tenantId.startsWith('tnt_') ? `ct_${tenantId.slice(4)}` : tenantId;
+    if (!this.schemas.has(schema)) {
+      this.schemas.set(schema, new Map());
+    }
+    const schemaTables = this.schemas.get(schema)!;
+    schemaTables.set(collection, structuredClone(rows as Record<string, unknown>[]));
+  }
 }
 
 export class NeonStoreAdapter implements StoreAdapter {
@@ -103,6 +112,18 @@ export class NeonStoreAdapter implements StoreAdapter {
     capabilities: Readonly<Capabilities> = postgresCapabilities,
   ) {
     this.capabilities = capabilities;
+  }
+
+  seed(tenantId: string, collection: string, rows: readonly unknown[]): void {
+    const candidate = this.executor as unknown;
+    if (
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'seed' in candidate &&
+      typeof (candidate as Record<string, unknown>).seed === 'function'
+    ) {
+      ((candidate as Record<string, unknown>).seed as (t: string, c: string, r: readonly unknown[]) => void)(tenantId, collection, rows);
+    }
   }
 
   async connect(context: TenantContext): Promise<void> {

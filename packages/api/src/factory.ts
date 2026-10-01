@@ -1,13 +1,26 @@
 import { postgresCapabilities } from '../../compiler/src/index.js';
 import {
   createTenantContext,
+  FirestoreStoreAdapter,
+  InMemoryFirestoreClient,
+  InMemoryLibsqlClient,
+  InMemoryMongoDatabase,
+  InMemoryRedisClient,
+  InMemorySqlExecutor,
   InMemoryStoreAdapter,
   InMemoryTenantRepository,
+  MongoStoreAdapter,
+  MultiBackendStoreAdapter,
+  NeonStoreAdapter,
   parseTenantId,
+  RedisStoreAdapter,
   type StoreAdapter,
+  SupabaseStoreAdapter,
   TenantGuard,
   TenantManager,
   type TenantRepository,
+  TursoStoreAdapter,
+  UpstashRestRedisClient,
 } from '../../tenant/src/index.js';
 import { AuthService } from './auth.js';
 import { QueryExecutionService } from './executor.js';
@@ -36,7 +49,37 @@ export function createColtaneApi(options: {
 } = {}): ColtaneApiSystem {
   const authService = new AuthService();
   const tenantRepository = options.tenantRepository ?? new InMemoryTenantRepository();
-  const storeAdapter = options.storeAdapter ?? new InMemoryStoreAdapter(postgresCapabilities);
+
+  let storeAdapter = options.storeAdapter;
+  if (!storeAdapter) {
+    const memory = new InMemoryStoreAdapter(postgresCapabilities);
+    const multi = new MultiBackendStoreAdapter(memory);
+
+    // Neon Postgres
+    multi.registerAdapter('neon', new NeonStoreAdapter(new InMemorySqlExecutor()));
+
+    // Supabase Postgres
+    multi.registerAdapter('supabase', new SupabaseStoreAdapter(new InMemorySqlExecutor()));
+
+    // Upstash Redis (uses live REST client if credentials are present in environment)
+    const redisRestUrl = process.env.UPSTASH_REDIS_REST_URL;
+    const redisRestToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+    const redisClient = redisRestUrl && redisRestToken
+      ? new UpstashRestRedisClient(redisRestUrl, redisRestToken)
+      : new InMemoryRedisClient();
+    multi.registerAdapter('redis', new RedisStoreAdapter(redisClient));
+
+    // Turso libSQL
+    multi.registerAdapter('turso', new TursoStoreAdapter(new InMemoryLibsqlClient()));
+
+    // MongoDB Atlas
+    multi.registerAdapter('mongodb', new MongoStoreAdapter(new InMemoryMongoDatabase()));
+
+    // Firebase Firestore
+    multi.registerAdapter('firestore', new FirestoreStoreAdapter(new InMemoryFirestoreClient()));
+
+    storeAdapter = multi;
+  }
 
   const tenantManager = new TenantManager(
     tenantRepository,

@@ -1,10 +1,11 @@
 export { createTenantContext, createTenantId, parseTenantId } from './context.js';
 export type { TenantContext, TenantId, TenantState } from './context.js';
 export { InMemoryStoreAdapter } from './memory-adapter.js';
+export { MultiBackendStoreAdapter } from './multi-adapter.js';
 export { InMemorySqlExecutor, NeonStoreAdapter } from './neon-adapter.js';
 export type { SqlExecutor, SqlQueryResult } from './neon-adapter.js';
 export { SupabaseStoreAdapter } from './supabase-adapter.js';
-export { InMemoryRedisClient, RedisStoreAdapter } from './redis-adapter.js';
+export { InMemoryRedisClient, RedisStoreAdapter, UpstashRestRedisClient } from './redis-adapter.js';
 export type { RedisClient } from './redis-adapter.js';
 export { InMemoryLibsqlClient, TursoStoreAdapter } from './turso-adapter.js';
 export type { LibsqlClient, LibsqlQueryResult } from './turso-adapter.js';
