@@ -1,0 +1,15 @@
+{
+  "name": "@coltanedb/tenant",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@coltanedb/compiler": "workspace:*"
+  }
+}
