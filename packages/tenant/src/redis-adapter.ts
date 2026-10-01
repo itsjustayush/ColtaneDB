@@ -1,4 +1,4 @@
-import { kvCapabilities, type Capabilities, type ParameterBinding, type PlanStep } from '@coltanedb/compiler';
+import { kvCapabilities, type Capabilities, type PlanStep } from '@coltanedb/compiler';
 import type { TenantContext } from './context.js';
 import type { StoreAdapter } from './store-adapter.js';
 
