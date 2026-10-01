@@ -1,5 +1,10 @@
 export { compile } from './semantic.ts';
-export { postgresCapabilities } from './capabilities.ts';
+export {
+  postgresCapabilities,
+  sqliteCapabilities,
+  documentCapabilities,
+  kvCapabilities,
+} from './capabilities.ts';
 export type {
   Capabilities,
   Catalog,

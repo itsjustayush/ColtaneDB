@@ -25,4 +25,5 @@ Use the ignored `.env.local` only for owner-managed local credentials; `.env.exa
 
 ## License
 
-Apache-2.0. See [LICENSE](LICENSE).
+- Code: Apache-2.0. See [LICENSE](LICENSE).
+- Specification: Creative Commons Attribution 4.0 International (CC-BY-4.0). See [spec/LICENSE](spec/LICENSE).

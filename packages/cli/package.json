@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Colt command line interface: lex, parse, check, and plan .colt source offline.",
   "bin": {
-    "colt": "./src/main.ts"
+    "colt": "./src/main.ts",
+    "coltane": "./src/main.ts"
   },
   "exports": {
     ".": "./src/main.ts"

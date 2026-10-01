@@ -1,6 +1,7 @@
 # Colt Language Specification v0.1
 
-Status: normative for the implemented M1 Tier-1 subset. Product: ColtaneDB. Language: Colt. Source extension: `.colt`. This specification does not describe support that the current implementation does not prove.
+Status: normative for the implemented M1 Tier-1 subset. Product: ColtaneDB. Language: Colt. Source extension: `.colt`. License: CC-BY-4.0. This specification does not describe support that the current implementation does not prove.
+
 
 ## 1. Design
 
