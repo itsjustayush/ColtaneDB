@@ -1,14 +1,31 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": null,
-  "buildCommand": "pnpm build",
-  "installCommand": "pnpm install --frozen-lockfile",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/server.ts" }
-  ],
-  "functions": {
-    "server.ts": {
-      "includeFiles": "{index.html,examples/library.colt}"
+  "services": {
+    "app": {
+      "root": ".",
+      "runtime": "node",
+      "buildCommand": "pnpm build",
+      "installCommand": "pnpm install --frozen-lockfile",
+      "bindings": [
+        {
+          "type": "service",
+          "service": "python",
+          "format": "url",
+          "env": "PYTHON_SERVICE_URL"
+        }
+      ]
+    },
+    "python": {
+      "root": "python",
+      "runtime": "python"
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "app"
+      }
+    }
+  ]
 }

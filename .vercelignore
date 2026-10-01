@@ -5,7 +5,6 @@ node_modules/
 .turbo/
 docs/
 spec/
-python/
 tests/
 *.md
 *.mdx

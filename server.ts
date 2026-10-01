@@ -163,7 +163,31 @@ const server = createServer(async (req, res) => {
   }
 
   try {
-    // 0. API v1 routes (Milestone 3 & 4)
+    // 0. Internal Python service binding proxy (Vercel multi-service)
+    if (url.pathname.startsWith('/api/v1/python-worker')) {
+      const pythonUrl = process.env.PYTHON_SERVICE_URL;
+      if (!pythonUrl) {
+        sendJson(res, 503, { error: 'Python internal worker service binding not available.' });
+        return;
+      }
+      try {
+        const targetPath = url.pathname.replace(/^\/api\/v1\/python-worker/, '') || '/';
+        const targetUrl = new URL(targetPath + url.search, pythonUrl);
+        const reqBody = (req.method === 'POST' || req.method === 'PUT') ? await readBody(req) : undefined;
+        const response = await fetch(targetUrl, {
+          method: req.method,
+          headers: { 'Content-Type': 'application/json' },
+          body: reqBody,
+        });
+        const respData = await response.json();
+        sendJson(res, response.status, respData);
+      } catch (err) {
+        sendJson(res, 502, { error: `Python worker request failed: ${String(err)}` });
+      }
+      return;
+    }
+
+    // 0b. API v1 routes (Milestone 3 & 4)
     if (url.pathname === '/api/v1/default-project') {
       sendJson(res, 200, { tenantId: defaultProjectId });
       return;
