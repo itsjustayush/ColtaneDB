@@ -3,21 +3,27 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "packageManager": "pnpm@10.34.6",
   "engines": {
     "node": "24.x"
   },
   "scripts": {
     "build": "tsc --noEmit",
+    "dev": "tsx server.ts",
+    "start": "tsx server.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "devDependencies": {
-    "@coltanedb/cli": "workspace:*",
+    "@coltanedb/cli": "*",
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.10.0",
     "eslint": "^10.0.1",
+    "tsx": "^4.19.3",
     "turbo": "^2.6.3",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.48.0",

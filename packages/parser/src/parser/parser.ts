@@ -21,7 +21,6 @@ import type { ColtDiagnostic, ColtToken, LexResult, SourceSpan } from '../lexer/
 const reservedStatements = new Set(['LIVE', 'SET', 'GET', 'RELATE']);
 const reservedClauses = new Set(['FETCH', 'NEAREST', 'SINCE', 'WINDOW']);
 const statementKeywords = new Set(['DEFINE', 'FIND', 'PUT', 'CREATE', 'DELETE', 'ATOMIC']);
-const clauseKeywords = new Set(['WHERE', 'ORDER', 'LIMIT', 'OFFSET']);
 const precedence = new Map<string, number>([
   ['OR', 1],
   ['AND', 2],

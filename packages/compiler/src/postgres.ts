@@ -1,6 +1,5 @@
 import type {
   Annotation,
-  AtomicStatement,
   CreateStatement,
   DefineCollectionStatement,
   DeleteStatement,
@@ -15,11 +14,6 @@ import type {
 } from '@coltanedb/parser';
 import type { CollectionModel, ParameterBinding, PlanStep, PostgresBackend } from './types.ts';
 
-interface SqlFragment {
-  sql: string;
-  params: ParameterBinding[];
-}
-
 function quoteIdentifier(identifier: string): string {
   return `"${identifier.replaceAll('"', '""')}"`;
 }
@@ -29,12 +23,17 @@ function parameter(binding: ParameterBinding, params: ParameterBinding[]): strin
   return `$${params.length}`;
 }
 
-function getAnnotation(field: FieldDefinition, name: string): Annotation | undefined {
-  return field.annotations.find((annotation) => annotation.name === name);
+function getAnnotation(field: FieldDefinition | undefined, name: string): Annotation | undefined {
+  return field?.annotations?.find((annotation) => annotation.name === name);
 }
 
 function keyField(model: CollectionModel): FieldDefinition {
-  return model.statement.fields.find((field) => getAnnotation(field, 'key'))!;
+  return model.statement.fields.find((field) => getAnnotation(field, 'key')) ?? model.statement.fields[0] ?? {
+    name: 'id',
+    valueType: { kind: 'scalar', name: 'uuid' },
+    annotations: [],
+    span: model.statement.span,
+  };
 }
 
 function pgType(valueType: TypeDefinition, model?: CollectionModel): string {
@@ -75,8 +74,7 @@ function compileSchema(statement: DefineCollectionStatement, model: CollectionMo
   };
 }
 
-function compileFieldPath(path: FieldPath, model: CollectionModel, params: ParameterBinding[]): string {
-  const field = model.statement.fields.find((candidate) => candidate.name === path.root)!;
+function compileFieldPath(path: FieldPath, _model: CollectionModel, params: ParameterBinding[]): string {
   const column = quoteIdentifier(path.root);
   if (path.segments.length === 0) return column;
   const pathSegments = path.segments.map(String);
@@ -234,7 +232,7 @@ function compileInsert(
   let sql = `INSERT INTO ${quoteIdentifier(model.name)} (${names.join(', ')}) VALUES (${placeholders.join(', ')})`;
   if (mode === 'put') {
     const updates = values
-      .filter((field) => field.name !== primary.name && !getAnnotation(model.statement.fields.find((candidate) => candidate.name === field.name)!, 'readonly'))
+      .filter((field) => field.name !== primary.name && !getAnnotation(model.statement.fields.find((candidate) => candidate.name === field.name), 'readonly'))
       .map((field) => `${quoteIdentifier(field.name)} = EXCLUDED.${quoteIdentifier(field.name)}`);
     sql += updates.length > 0
       ? ` ON CONFLICT (${quoteIdentifier(primary.name)}) DO UPDATE SET ${updates.join(', ')}`

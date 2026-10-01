@@ -1,6 +1,5 @@
 import type {
   AtomicStatement,
-  DefineCollectionStatement,
   Expression,
   FieldDefinition,
   FieldPath,
@@ -422,6 +421,6 @@ export function compile(source: string, initialCatalog: ReadonlyMap<string, Coll
     if (diagnostics.length === diagnosticCount) steps.push(generateStatement(statement, model));
   }
 
-  if (diagnostics.length > 0) return { diagnostics };
+  if (diagnostics.length > 0 || steps.length === 0) return { diagnostics };
   return { plan: { steps }, diagnostics };
 }

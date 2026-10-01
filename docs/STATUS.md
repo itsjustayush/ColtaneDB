@@ -4,7 +4,7 @@ Last updated: 2026-09-30
 
 ## Current milestone
 
-M0 — Foundations. Local acceptance checks pass; remote CI is pending. Owner-approved Neon bootstrap is complete.
+M0 — Foundations. Web Studio & Official Web IDE complete: Supabase-inspired dashboard and landing page, dark/light mode toggle, in-browser Colt compiler/planner with line gutter, No-Code Visual Schema & Query Builder, Table Explorer, Colt Language Documentation (/docs), .colt file import & export, Python pip package architecture (`coltane` with client, builder, CLI), Neon function proxy, and vercel.json deployment configuration. All 118 unit and conformance tests passing. Fixed client-side script lifecycle reference so line numbers and view switcher resolve safely upon initial hash load. Owner-approved Neon bootstrap is complete.
 
 ## Built
 

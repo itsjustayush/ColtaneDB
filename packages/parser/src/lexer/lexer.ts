@@ -3,7 +3,6 @@ import type {
   ColtToken,
   LexResult,
   SourcePosition,
-  SourceSpan,
   TokenKind,
 } from './token.ts';
 
@@ -293,7 +292,7 @@ class Lexer {
   }
 
   private advanceText(text: string): void {
-    for (const _char of text) this.advance();
+    for (let index = 0; index < text.length; index += 1) this.advance();
   }
 
   private advance(): string {

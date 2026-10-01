@@ -10,6 +10,6 @@
     "build": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@coltanedb/parser": "workspace:*"
+    "@coltanedb/parser": "*"
   }
 }

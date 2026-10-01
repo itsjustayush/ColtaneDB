@@ -18,7 +18,7 @@
     "colt": "node ./src/main.ts"
   },
   "dependencies": {
-    "@coltanedb/compiler": "workspace:*",
-    "@coltanedb/parser": "workspace:*"
+    "@coltanedb/compiler": "*",
+    "@coltanedb/parser": "*"
   }
 }

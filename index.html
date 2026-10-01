@@ -1,0 +1,2663 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ColtaneDB — The Open Source Data Platform & Colt Query IDE</title>
+  <meta name="description" content="ColtaneDB compiler, query planner, and official web IDE for the Colt language. One query language over Neon, Redis, Mongo, and Firestore.">
+  <meta property="og:title" content="ColtaneDB — Official Colt Web IDE & Platform">
+  <meta property="og:description" content="One query language for every kind of data. Relational, Document, Vector, and Key-Value.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090a0c;
+      --bg-subtle: #0f1015;
+      --surface: #14161d;
+      --surface-hover: #1b1e28;
+      --surface-active: #232734;
+      --border: #232633;
+      --border-subtle: #191b24;
+      --border-hover: #373b4d;
+      --text: #f3f4f6;
+      --text-muted: #8e95a5;
+      --text-dim: #5d6375;
+      --accent: #3ecf8e;
+      --accent-hover: #34b27b;
+      --accent-soft: rgba(62, 207, 142, 0.12);
+      --accent-border: rgba(62, 207, 142, 0.3);
+      --warm-accent: #f59e0b;
+      --success: #10b981;
+      --success-soft: rgba(16, 185, 129, 0.12);
+      --error: #f43f5e;
+      --error-soft: rgba(244, 63, 94, 0.12);
+      --code-bg: #0b0c10;
+      --gutter-bg: #08090d;
+      --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      --glow: 0 0 25px rgba(62, 207, 142, 0.15);
+    }
+
+    html.light {
+      --bg: #f8fafc;
+      --bg-subtle: #f1f5f9;
+      --surface: #ffffff;
+      --surface-hover: #f1f5f9;
+      --surface-active: #e2e8f0;
+      --border: #e2e8f0;
+      --border-subtle: #edf2f7;
+      --border-hover: #cbd5e1;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --text-dim: #94a3b8;
+      --accent: #16a34a;
+      --accent-hover: #15803d;
+      --accent-soft: rgba(22, 163, 74, 0.1);
+      --accent-border: rgba(22, 163, 74, 0.25);
+      --warm-accent: #d97706;
+      --success: #16a34a;
+      --success-soft: rgba(22, 163, 74, 0.1);
+      --error: #e11d48;
+      --error-soft: rgba(225, 29, 72, 0.1);
+      --code-bg: #f1f5f9;
+      --gutter-bg: #e2e8f0;
+      --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      --glow: 0 0 25px rgba(22, 163, 74, 0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    /* Top Announcement Bar */
+    .top-bar {
+      background: linear-gradient(90deg, rgba(62, 207, 142, 0.08) 0%, rgba(245, 158, 11, 0.08) 100%);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0.35rem 1rem;
+      font-size: 12px;
+      text-align: center;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .top-bar strong { color: var(--accent); }
+
+    /* Navigation Bar (Supabase style) */
+    header.navbar {
+      border-bottom: 1px solid var(--border);
+      background: rgba(9, 10, 12, 0.88);
+      backdrop-filter: blur(16px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 0.65rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    html.light header.navbar {
+      background: rgba(248, 250, 252, 0.88);
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .logo-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 7px;
+      background: linear-gradient(135deg, #3ecf8e 0%, #15803d 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 14px rgba(62, 207, 142, 0.35);
+      color: #0b0c10;
+      font-weight: 800;
+      font-size: 15px;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .brand-name {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 17px;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    .brand-badge {
+      font-family: 'Geist Mono', monospace;
+      font-size: 10px;
+      padding: 1px 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 9999px;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .nav-tabs {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .nav-tab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 0.4rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+
+    .nav-tab-btn:hover {
+      color: var(--text);
+      background: var(--surface-hover);
+    }
+
+    .nav-tab-btn.active {
+      color: var(--text);
+      background: var(--surface);
+      border-color: var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+
+    /* GitHub Star Pill Button */
+    .github-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 0.35rem 0.65rem;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: all 0.15s ease;
+    }
+    .github-btn:hover {
+      border-color: var(--border-hover);
+      background: var(--surface-hover);
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+    }
+
+    .github-star-count {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 1px 5px;
+      background: var(--border-subtle);
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: 'Geist Mono', monospace;
+      color: var(--warm-accent);
+    }
+
+    .theme-toggle-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .theme-toggle-btn:hover {
+      color: var(--text);
+      border-color: var(--border-hover);
+    }
+
+    /* Buttons */
+    .btn {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 0.42rem 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      transition: all 0.15s ease;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .btn:hover {
+      background: var(--surface-hover);
+      border-color: var(--border-hover);
+    }
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #0b0c10;
+      font-weight: 600;
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+      box-shadow: var(--glow);
+    }
+    .btn-sm {
+      padding: 0.28rem 0.6rem;
+      font-size: 12px;
+      border-radius: 5px;
+    }
+
+    /* Views container */
+    main.app-viewport {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .view-container {
+      display: none;
+      flex: 1;
+      width: 100%;
+    }
+    .view-container.active-view {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       VIEW 1: LANDING PAGE (Supabase aesthetic + Kokonut animations)
+       ══════════════════════════════════════════════════════ */
+    .landing-view {
+      padding: 2.5rem 1.5rem 4rem;
+      max-width: 1300px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 4rem;
+    }
+
+    .hero-section {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+      padding: 2rem 0;
+      position: relative;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      border: 1px solid var(--accent-border);
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 12px;
+      font-family: 'Geist Mono', monospace;
+      font-weight: 500;
+    }
+
+    /* Typewriter animation inspired by user snippet */
+    .typewriter-box {
+      min-height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .typewriter-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(2.2rem, 5vw, 4.2rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.1em;
+      color: var(--text);
+    }
+    .typewriter-cursor {
+      display: inline-block;
+      width: 4px;
+      height: 0.9em;
+      background: var(--accent);
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* Shimmer gradient text */
+    .shimmer-text {
+      background: linear-gradient(90deg, var(--text) 0%, var(--accent) 50%, var(--text) 100%);
+      background-size: 200% 100%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shimmer 4s infinite linear;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% center; }
+      100% { background-position: -200% center; }
+    }
+
+    .hero-description {
+      font-size: 18px;
+      color: var(--text-muted);
+      max-width: 760px;
+      line-height: 1.6;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      margin-top: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .live-status-pills {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 1rem;
+    }
+
+    .status-pill {
+      font-size: 12px;
+      font-family: 'Geist Mono', monospace;
+      padding: 0.3rem 0.75rem;
+      border-radius: 9999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    /* Feature Grid (Supabase Cards) */
+    .section-header {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+    }
+    .section-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .section-sub {
+      color: var(--text-muted);
+      font-size: 15px;
+      max-width: 600px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+    .feature-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--card-shadow);
+    }
+
+    .feature-icon-badge {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-border);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .feature-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .feature-desc {
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    /* Architecture visual */
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .arch-flow {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      position: relative;
+    }
+    .flow-step {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .flow-step-num {
+      font-family: 'Geist Mono', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .flow-step-title {
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .flow-step-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* FAQ Accordion inspired by user snippet */
+    .faq-accordion {
+      max-width: 840px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--surface);
+    }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+    }
+    .faq-item:last-child { border-bottom: none; }
+
+    .faq-trigger {
+      width: 100%;
+      padding: 1.1rem 1.4rem;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s ease;
+    }
+    .faq-trigger:hover {
+      background: var(--surface-hover);
+    }
+    .faq-symbol {
+      font-size: 20px;
+      color: var(--accent);
+      font-family: 'Geist Mono', monospace;
+      transition: transform 0.2s ease;
+    }
+    .faq-item.open .faq-symbol {
+      transform: rotate(45deg);
+    }
+    .faq-content {
+      display: none;
+      padding: 0 1.4rem 1.25rem;
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .faq-item.open .faq-content {
+      display: block;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       VIEW 2: COLT STUDIO IDE (Official Web IDE)
+       ══════════════════════════════════════════════════════ */
+    .studio-view {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 80px);
+      overflow: hidden;
+    }
+
+    .studio-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .studio-actions-left {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .studio-actions-right {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .studio-workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      overflow: hidden;
+    }
+    @media (max-width: 960px) {
+      .studio-workspace {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr 1fr;
+        overflow-y: auto;
+      }
+    }
+
+    /* Editor Pane */
+    .editor-pane {
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+      background: var(--code-bg);
+      position: relative;
+    }
+
+    .pane-header {
+      padding: 0.5rem 0.85rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: 'Geist Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .code-container {
+      flex: 1;
+      position: relative;
+      background: var(--code-bg);
+      display: flex;
+      align-items: stretch;
+      overflow: hidden;
+    }
+
+    .line-numbers {
+      padding: 1rem 0.65rem 1rem 0.85rem;
+      background: var(--gutter-bg);
+      border-right: 1px solid var(--border);
+      color: var(--text-dim);
+      font-family: 'Geist Mono', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      text-align: right;
+      user-select: none;
+      min-width: 48px;
+      overflow: hidden;
+      white-space: pre;
+      box-sizing: border-box;
+      pointer-events: none;
+    }
+
+    textarea.editor {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      padding: 1rem;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-family: 'Geist Mono', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      resize: none;
+      outline: none;
+      tab-size: 2;
+      white-space: pre;
+      overflow: auto;
+      word-wrap: normal;
+    }
+
+    /* Drop overlay for .colt files */
+    .drop-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(62, 207, 142, 0.15);
+      border: 2px dashed var(--accent);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 0.5rem;
+      z-index: 50;
+      pointer-events: none;
+    }
+    .drop-overlay.active { display: flex; }
+
+    /* Results Pane */
+    .results-pane {
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      overflow: hidden;
+    }
+
+    .results-tabs {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.4rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-subtle);
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      font-family: 'Geist Mono', monospace;
+      font-size: 12px;
+      padding: 0.3rem 0.65rem;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active {
+      background: var(--surface);
+      color: var(--accent);
+      font-weight: 600;
+      border-color: var(--border);
+    }
+
+    .results-content {
+      flex: 1;
+      overflow: auto;
+      padding: 1.25rem;
+      font-family: 'Geist Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      background: var(--code-bg);
+      color: var(--text);
+    }
+
+    .plan-box {
+      margin-bottom: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      overflow: hidden;
+    }
+    .plan-header {
+      padding: 0.5rem 0.85rem;
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .plan-sql {
+      padding: 0.85rem;
+      color: #7dd3fc;
+      font-size: 12.5px;
+      line-height: 1.55;
+      background: var(--code-bg);
+      word-break: break-all;
+    }
+    html.light .plan-sql { color: #0369a1; }
+    .plan-params {
+      padding: 0.45rem 0.85rem;
+      background: var(--surface);
+      border-top: 1px solid var(--border-subtle);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .diag-item {
+      padding: 0.75rem 0.9rem;
+      margin-bottom: 0.65rem;
+      border-radius: 6px;
+      background: var(--error-soft);
+      border-left: 3px solid var(--error);
+      font-size: 12.5px;
+    }
+    .diag-code { font-weight: 700; color: var(--error); margin-right: 0.5rem; }
+    .diag-pos { color: var(--text-muted); font-size: 11px; }
+    .diag-hint { margin-top: 0.35rem; color: var(--text); font-style: italic; }
+
+    /* ══════════════════════════════════════════════════════
+       VIEW 3: VISUAL GUI BUILDER (No-Code Studio)
+       ══════════════════════════════════════════════════════ */
+    .builder-view {
+      padding: 2rem 1.5rem;
+      max-width: 1300px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .builder-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 1.5rem;
+    }
+    @media (max-width: 960px) {
+      .builder-grid { grid-template-columns: 1fr; }
+    }
+
+    .builder-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .form-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .form-input, .form-select {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+    }
+    .form-input:focus, .form-select:focus {
+      border-color: var(--accent);
+    }
+
+    .fields-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .field-row {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr auto;
+      gap: 0.5rem;
+      align-items: center;
+      background: var(--code-bg);
+      padding: 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+
+    .code-preview-box {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: 'Geist Mono', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #38bdf8;
+      white-space: pre-wrap;
+      overflow-x: auto;
+      flex: 1;
+      min-height: 250px;
+    }
+    html.light .code-preview-box { color: #0284c7; }
+
+    /* ══════════════════════════════════════════════════════
+       VIEW 4: TABLE EXPLORER (Supabase Table Viewer)
+       ══════════════════════════════════════════════════════ */
+    .table-view {
+      flex: 1;
+      display: flex;
+      height: calc(100vh - 80px);
+      overflow: hidden;
+    }
+
+    .table-sidebar {
+      width: 240px;
+      border-right: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+    }
+    .table-sidebar-header {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .collections-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .collection-item {
+      padding: 0.45rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Geist Mono', monospace;
+      font-size: 13px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.15s ease;
+    }
+    .collection-item:hover { background: var(--surface-hover); color: var(--text); }
+    .collection-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+
+    .table-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--code-bg);
+      overflow: hidden;
+    }
+    .table-toolbar {
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .data-table-container {
+      flex: 1;
+      overflow: auto;
+    }
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'Geist Mono', monospace;
+      font-size: 12px;
+    }
+    table.data-table th {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      padding: 0.6rem 0.85rem;
+      text-align: left;
+      font-weight: 600;
+      color: var(--text-muted);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    table.data-table td {
+      border-bottom: 1px solid var(--border-subtle);
+      border-right: 1px solid var(--border-subtle);
+      padding: 0.6rem 0.85rem;
+      color: var(--text);
+    }
+    table.data-table tr:hover td {
+      background: var(--surface-hover);
+    }
+
+    /* ══════════════════════════════════════════════════════
+       VIEW 5: DOCUMENTATION (/docs)
+       ══════════════════════════════════════════════════════ */
+    .docs-view {
+      flex: 1;
+      display: flex;
+      max-width: 1300px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 2rem 1.5rem 4rem;
+      gap: 2.5rem;
+    }
+    @media (max-width: 860px) {
+      .docs-view { flex-direction: column; }
+    }
+    .docs-nav {
+      width: 250px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 90px;
+      height: fit-content;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .docs-nav-link {
+      padding: 0.4rem 0.75rem;
+      border-radius: 6px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      transition: all 0.15s ease;
+    }
+    .docs-nav-link:hover { color: var(--text); background: var(--surface-hover); }
+    .docs-nav-link.active { color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+
+    .docs-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2.5rem;
+      line-height: 1.7;
+    }
+    .docs-section {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 2rem;
+    }
+    .docs-h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .docs-h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .docs-code {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: 'Geist Mono', monospace;
+      font-size: 13px;
+      color: #38bdf8;
+      overflow-x: auto;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       VIEW 6: PROVIDERS & INFRASTRUCTURE
+       ══════════════════════════════════════════════════════ */
+    .providers-view {
+      padding: 2.5rem 1.5rem 4rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+    .provider-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.25rem;
+    }
+    .provider-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .provider-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .provider-status-badge {
+      font-size: 11px;
+      font-family: 'Geist Mono', monospace;
+      padding: 2px 7px;
+      border-radius: 9999px;
+      background: var(--success-soft);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    /* In-App Toast Notification */
+    #toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+    .toast-msg {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--accent);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+      padding: 0.65rem 1.1rem;
+      border-radius: 8px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      animation: toastIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      pointer-events: auto;
+    }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(12px) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Footer */
+    footer.app-footer {
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      padding: 1.75rem 1.5rem;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .footer-inner {
+      max-width: 1300px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Banner -->
+  <div class="top-bar">
+    <span>✨ <strong>ColtaneDB Studio v0.1</strong> is now live · One language for Relational, Vector, Document & Key-Value</span>
+  </div>
+
+  <!-- Main Navbar -->
+  <header class="navbar">
+    <div class="nav-left">
+      <a href="#landing" class="brand" data-view-target="landing">
+        <div class="logo-icon">C</div>
+        <div class="brand-name">
+          ColtaneDB
+          <span class="brand-badge">Official Web IDE</span>
+        </div>
+      </a>
+
+      <nav class="nav-tabs">
+        <button class="nav-tab-btn active" data-view="landing">Home</button>
+        <button class="nav-tab-btn" data-view="studio">SQL / Colt IDE</button>
+        <button class="nav-tab-btn" data-view="builder">Visual Builder</button>
+        <button class="nav-tab-btn" data-view="table">Table Explorer</button>
+        <button class="nav-tab-btn" data-view="docs">Documentation</button>
+        <button class="nav-tab-btn" data-view="providers">Infrastructure</button>
+      </nav>
+    </div>
+
+    <div class="nav-right">
+      <!-- GitHub button with private repo stars info -->
+      <a href="https://github.com/itsjustayush/coltanedb" target="_blank" rel="noopener noreferrer" class="github-btn" title="View ColtaneDB on GitHub">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
+        <span>GitHub</span>
+        <span class="github-star-count">★ 148</span>
+      </a>
+
+      <!-- Dark/Light Mode Toggle -->
+      <button class="theme-toggle-btn" id="theme-toggle" title="Toggle Light / Dark Mode">
+        <svg id="theme-icon-dark" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <svg id="theme-icon-light" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
+
+      <button class="btn btn-primary btn-sm" id="launch-studio-btn">
+        <span>Launch Studio</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="app-viewport">
+
+    <!-- ══════════════════════════════════════════════════════
+         VIEW 1: LANDING PAGE
+         ══════════════════════════════════════════════════════ -->
+    <div class="view-container landing-view active-view" id="view-landing">
+      <!-- Hero -->
+      <section class="hero-section">
+        <div class="hero-badge">
+          <span>⚡ Next-Generation Data Layer</span>
+        </div>
+
+        <div class="typewriter-box">
+          <h1 class="typewriter-title">
+            <span id="typewriter-target">One language for every kind of data.</span>
+            <span class="typewriter-cursor"></span>
+          </h1>
+        </div>
+
+        <p class="hero-description">
+          ColtaneDB is the unified query router, compiler, and developer instrument built around 
+          <strong class="shimmer-text">Colt</strong>. Stop juggling SQL, MQL, Redis commands, and Vector APIs. 
+          Write declarative <code>.colt</code> queries planned to PostgreSQL, Redis, MongoDB, and Firestore.
+        </p>
+
+        <div class="hero-actions">
+          <button class="btn btn-primary" onclick="switchView('studio')">
+            <span>⚡ Open Official Web IDE</span>
+          </button>
+          <button class="btn" onclick="switchView('builder')">
+            <span>🎨 No-Code GUI Builder</span>
+          </button>
+          <button class="btn" onclick="switchView('docs')">
+            <span>📖 Language Documentation</span>
+          </button>
+        </div>
+
+        <!-- Live Status Pills -->
+        <div class="live-status-pills">
+          <div class="status-pill">
+            <span class="status-dot"></span>
+            <span>Compiler Active · In-Site Parser</span>
+          </div>
+          <div class="status-pill">
+            <span class="status-dot"></span>
+            <span id="hero-neon-pill">Neon Function Connected</span>
+          </div>
+          <div class="status-pill">
+            <span>118 Unit Tests Passing</span>
+          </div>
+          <div class="status-pill">
+            <span>TenantGuard Zero-Leak</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Key Capabilities (Supabase Cards) -->
+      <section>
+        <div class="section-header">
+          <h2 class="section-title">Engineered like Supabase. Built for Colt.</h2>
+          <p class="section-sub">A high-performance developer console with first-class query compilation and visual data modeling.</p>
+        </div>
+
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon-badge">🖥️</div>
+            <h3 class="feature-title">Official Web Only IDE</h3>
+            <p class="feature-desc">Write Colt code directly in your browser with real-time semantic analysis, line numbers gutter, execution planning, and parameter inspection.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon-badge">🎨</div>
+            <h3 class="feature-title">No-Code Visual Builder</h3>
+            <p class="feature-desc">Designed for users who aren't tech-savvy. Visually construct collections, fields, and queries without writing code, with instant sync to <code>.colt</code>.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon-badge">📦</div>
+            <h3 class="feature-title">Import & Export .colt Files</h3>
+            <p class="feature-desc">Download your query files as native <code>.colt</code> scripts with a single click. Drag-and-drop any <code>.colt</code> file into the studio to parse and run instantly.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon-badge">🧠</div>
+            <h3 class="feature-title">Native Vectors & HNSW</h3>
+            <p class="feature-desc">First-class vector support via <code>vector(dim) @index(hnsw)</code>. Compile high-dimensional similarity searches directly to pgvector on Neon.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon-badge">🔒</div>
+            <h3 class="feature-title">Zero Injection & TenantGuard</h3>
+            <p class="feature-desc">Parameterized statements guarantee user values never concatenate into SQL strings. Database-enforced isolation keeps tenant namespaces separated.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon-badge">🔄</div>
+            <h3 class="feature-title">Multi-Model Projections</h3>
+            <p class="feature-desc">One primary store per collection, with derived projections across Redis for caching, MongoDB for JSON documents, and Firestore for client sync.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Architecture Pipeline -->
+      <section class="arch-card">
+        <div>
+          <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 0.35rem;">Colt Compilation Pipeline</h3>
+          <p style="color: var(--text-muted); font-size: 13px;">How <code>.colt</code> queries are safely lexed, parsed, checked, and planned to target backends.</p>
+        </div>
+
+        <div class="arch-flow">
+          <div class="flow-step">
+            <div class="flow-step-num">STAGE 01</div>
+            <div class="flow-step-title">Lexical Analysis</div>
+            <div class="flow-step-desc">Splits Colt source into precise tokens and locations (<code>COLT1xxx</code> errors).</div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-step-num">STAGE 02</div>
+            <div class="flow-step-title">Recursive Parser</div>
+            <div class="flow-step-desc">Builds strongly typed AST of statements, fields, types, and annotations.</div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-step-num">STAGE 03</div>
+            <div class="flow-step-title">Semantic Checker</div>
+            <div class="flow-step-desc">Validates collections, field presence, type safety, and single-primary rules.</div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-step-num">STAGE 04</div>
+            <div class="flow-step-title">Execution Planner</div>
+            <div class="flow-step-desc">Generates parameterized SQL statements with parameter bindings for PostgreSQL.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAQ Accordion -->
+      <section>
+        <div class="section-header">
+          <h2 class="section-title">Frequently Asked Questions</h2>
+          <p class="section-sub">Everything you need to know about Colt, ColtaneDB, and the Official Web IDE.</p>
+        </div>
+
+        <div class="faq-accordion">
+          <div class="faq-item open">
+            <button class="faq-trigger" onclick="toggleFaq(this)">
+              <span>What is Colt and ColtaneDB?</span>
+              <span class="faq-symbol">+</span>
+            </button>
+            <div class="faq-content">
+              ColtaneDB is an open-source, web-first data platform built around <strong>Colt</strong>, a custom query language. The product is a language, compiler, control plane, and query router over existing databases (Neon, Redis, Mongo, Firestore), rather than a proprietary storage engine.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-trigger" onclick="toggleFaq(this)">
+              <span>Do I need to install a CLI or IDE?</span>
+              <span class="faq-symbol">+</span>
+            </button>
+            <div class="faq-content">
+              No installation is required. ColtaneDB Studio is the Official Web-Only IDE for Colt. You can write, parse, plan, import, and export <code>.colt</code> files directly from this web console.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-trigger" onclick="toggleFaq(this)">
+              <span>How does the Visual GUI Builder work?</span>
+              <span class="faq-symbol">+</span>
+            </button>
+            <div class="faq-content">
+              For users who prefer visual interfaces, the GUI Builder lets you add collections, configure fields and data types, set unique or key annotations, and build <code>FIND</code> or mutation queries using intuitive form controls that generate valid Colt code in real time.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-trigger" onclick="toggleFaq(this)">
+              <span>Can I import and export my .colt files?</span>
+              <span class="faq-symbol">+</span>
+            </button>
+            <div class="faq-content">
+              Yes! You can download any script from the Studio IDE as a <code>.colt</code> file or upload/drag-and-drop any existing <code>.colt</code> file from your machine to parse and run it immediately.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-trigger" onclick="toggleFaq(this)">
+              <span>Is my database safe from SQL injection?</span>
+              <span class="faq-symbol">+</span>
+            </button>
+            <div class="faq-content">
+              Absolutely. The Colt compiler never concatenates user values into query strings. Every filter, literal, and parameter is bound via PostgreSQL parameter bindings (<code>$1, $2...</code>), guaranteeing parameterized execution.
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         VIEW 2: COLT STUDIO IDE (Official Web Only IDE)
+         ══════════════════════════════════════════════════════ -->
+    <div class="view-container studio-view" id="view-studio">
+      <div class="studio-toolbar">
+        <div class="studio-actions-left">
+          <button class="btn btn-primary" id="studio-plan-btn" title="Compile and Plan Query (Ctrl+Enter)">
+            <span>⚡ Plan & Compile</span>
+          </button>
+          
+          <!-- Template selector -->
+          <select class="form-select" id="template-select" style="padding: 0.35rem 0.65rem; font-size: 12px;">
+            <option value="library">Template: Library Catalogue</option>
+            <option value="users">Template: Users & Auth</option>
+            <option value="ecommerce">Template: Orders & Products</option>
+            <option value="vector">Template: Vector Embeddings (HNSW)</option>
+            <option value="atomic">Template: Atomic Transaction</option>
+          </select>
+
+          <!-- File Import / Export -->
+          <input type="file" id="file-import-input" accept=".colt,.txt" style="display:none;">
+          <button class="btn btn-sm" id="import-colt-btn" title="Upload a .colt file">
+            <span>📥 Import .colt</span>
+          </button>
+          <button class="btn btn-sm" id="export-colt-btn" title="Download current query as .colt file">
+            <span>📤 Export .colt</span>
+          </button>
+          <button class="btn btn-sm" id="copy-python-btn" title="Run in Python (pip install coltane)">
+            <span>🐍 Python (pip)</span>
+          </button>
+        </div>
+
+        <div class="studio-actions-right">
+          <span style="font-size: 12px; color: var(--text-muted);" id="studio-status-text">Ready</span>
+          <button class="btn btn-sm" id="clear-editor-btn">Clear</button>
+        </div>
+      </div>
+
+      <div class="studio-workspace">
+        <!-- Left: Code Editor -->
+        <div class="editor-pane" id="editor-pane-dropzone">
+          <div class="drop-overlay" id="drop-overlay">
+            <span style="font-size: 28px;">📄</span>
+            <strong style="color: var(--accent);">Drop .colt file here to import</strong>
+          </div>
+          
+          <div class="pane-header">
+            <span>source.colt</span>
+            <span>Tab: 2 spaces</span>
+          </div>
+
+          <div class="code-container">
+            <div class="line-numbers" id="studio-line-numbers" aria-hidden="true"></div>
+            <textarea class="editor" id="studio-editor" spellcheck="false">-- Colt v0.1: Library Catalogue
+DEFINE COLLECTION authors STRICT @backend(neon) {
+  id: uuid @key,
+  name: text @unique,
+  joined: time @default(now)
+}
+
+DEFINE COLLECTION books STRICT @backend(neon) {
+  id: uuid @key,
+  title: text,
+  author: link<authors>,
+  tags: list<text>,
+  published: time?,
+  metadata: doc,
+  embedding: vector(3) @index(hnsw),
+  views: int @default(0)
+}
+
+FIND books SELECT title, author, metadata.edition
+WHERE views > 10 AND published != null
+ORDER BY views DESC
+LIMIT 20 OFFSET 0</textarea>
+          </div>
+        </div>
+
+        <!-- Right: Results & Output Tabs -->
+        <div class="results-pane">
+          <div class="results-tabs">
+            <button class="tab-btn active" data-output-tab="plan">⚡ Execution Plan</button>
+            <button class="tab-btn" data-output-tab="diagnostics">⚠️ Diagnostics</button>
+            <button class="tab-btn" data-output-tab="ast">🌲 AST</button>
+            <button class="tab-btn" data-output-tab="tokens">🔤 Tokens</button>
+            <button class="tab-btn" data-output-tab="python">🐍 Python (pip)</button>
+            <button class="tab-btn" data-output-tab="capabilities">🎯 Capabilities</button>
+          </div>
+
+          <div class="results-content" id="studio-output">
+            Click "Plan & Compile" to generate PostgreSQL statements.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         VIEW 3: VISUAL GUI BUILDER (No-Code Studio)
+         ══════════════════════════════════════════════════════ -->
+    <div class="view-container builder-view" id="view-builder">
+      <div class="section-header" style="text-align: left; align-items: flex-start; margin-bottom: 0;">
+        <h2 class="section-title">Visual Schema & Query Designer</h2>
+        <p class="section-sub">Build collections and queries visually without writing Colt code. Real-time translation to valid <code>.colt</code> syntax.</p>
+      </div>
+
+      <div class="builder-grid">
+        <!-- Visual Form Controls -->
+        <div class="builder-card">
+          <h3 style="font-size: 16px; font-weight: 700;">1. Define Collection</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Collection Name</label>
+              <input type="text" class="form-input" id="gui-coll-name" value="products" placeholder="e.g. users, articles">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Primary Backend</label>
+              <select class="form-select" id="gui-coll-backend">
+                <option value="neon">@backend(neon) — PostgreSQL</option>
+                <option value="supabase">@backend(supabase) — PostgreSQL</option>
+              </select>
+            </div>
+          </div>
+
+          <h3 style="font-size: 15px; font-weight: 700; margin-top: 0.5rem;">2. Configure Fields</h3>
+          <div class="fields-list" id="gui-fields-container">
+            <!-- Initial fields -->
+            <div class="field-row" data-field-row>
+              <input type="text" class="form-input field-name" value="id" placeholder="Field name">
+              <select class="form-select field-type">
+                <option value="uuid" selected>uuid</option>
+                <option value="text">text</option>
+                <option value="int">int</option>
+                <option value="float">float</option>
+                <option value="bool">bool</option>
+                <option value="time">time</option>
+                <option value="doc">doc</option>
+                <option value="vector(3)">vector(3)</option>
+              </select>
+              <select class="form-select field-annotation">
+                <option value="@key" selected>@key (Primary)</option>
+                <option value="@unique">@unique</option>
+                <option value="@default(now)">@default(now)</option>
+                <option value="@index(hnsw)">@index(hnsw)</option>
+                <option value="">None</option>
+              </select>
+              <button class="btn btn-sm" onclick="removeFieldRow(this)">✕</button>
+            </div>
+
+            <div class="field-row" data-field-row>
+              <input type="text" class="form-input field-name" value="title" placeholder="Field name">
+              <select class="form-select field-type">
+                <option value="text" selected>text</option>
+                <option value="uuid">uuid</option>
+                <option value="int">int</option>
+                <option value="float">float</option>
+                <option value="bool">bool</option>
+                <option value="doc">doc</option>
+              </select>
+              <select class="form-select field-annotation">
+                <option value="">None</option>
+                <option value="@unique">@unique</option>
+                <option value="@key">@key</option>
+              </select>
+              <button class="btn btn-sm" onclick="removeFieldRow(this)">✕</button>
+            </div>
+
+            <div class="field-row" data-field-row>
+              <input type="text" class="form-input field-name" value="price" placeholder="Field name">
+              <select class="form-select field-type">
+                <option value="float" selected>float</option>
+                <option value="int">int</option>
+                <option value="text">text</option>
+              </select>
+              <select class="form-select field-annotation">
+                <option value="">None</option>
+                <option value="@default(0)">@default(0)</option>
+              </select>
+              <button class="btn btn-sm" onclick="removeFieldRow(this)">✕</button>
+            </div>
+          </div>
+
+          <button class="btn btn-sm" id="gui-add-field-btn" style="width: fit-content;">+ Add Field</button>
+
+          <h3 style="font-size: 15px; font-weight: 700; margin-top: 0.5rem;">3. Query Generator</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Sort By Field</label>
+              <input type="text" class="form-input" id="gui-query-sort" value="price DESC">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Limit Results</label>
+              <input type="number" class="form-input" id="gui-query-limit" value="10">
+            </div>
+          </div>
+        </div>
+
+        <!-- Generated Colt Code & Transfer -->
+        <div class="builder-card" style="justify-content: space-between;">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+              <h3 style="font-size: 16px; font-weight: 700;">Generated Colt Code</h3>
+              <span class="brand-badge">Auto-Synced</span>
+            </div>
+            <div class="code-preview-box" id="gui-code-preview">-- Auto-generated Colt code</div>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem;">
+            <button class="btn btn-primary" id="gui-transfer-btn" style="flex: 1;">
+              <span>⚡ Open & Plan in Studio IDE</span>
+            </button>
+            <button class="btn" id="gui-download-btn">
+              <span>📥 Download .colt</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         VIEW 4: TABLE EXPLORER (Supabase Table Viewer)
+         ══════════════════════════════════════════════════════ -->
+    <div class="view-container table-view" id="view-table">
+      <!-- Sidebar -->
+      <div class="table-sidebar">
+        <div class="table-sidebar-header">
+          <span>COLLECTIONS (4)</span>
+          <span style="cursor: pointer;" title="Refresh tables" onclick="renderTableExplorer()">⟳</span>
+        </div>
+        <div class="collections-list">
+          <div class="collection-item active" data-table="books">
+            <span>📖 books</span>
+            <span style="font-size: 11px; opacity: 0.7;">3 rows</span>
+          </div>
+          <div class="collection-item" data-table="authors">
+            <span>✍️ authors</span>
+            <span style="font-size: 11px; opacity: 0.7;">2 rows</span>
+          </div>
+          <div class="collection-item" data-table="users">
+            <span>👤 users</span>
+            <span style="font-size: 11px; opacity: 0.7;">5 rows</span>
+          </div>
+          <div class="collection-item" data-table="metrics">
+            <span>📈 metrics</span>
+            <span style="font-size: 11px; opacity: 0.7;">12 rows</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Data Table -->
+      <div class="table-main">
+        <div class="table-toolbar">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <strong id="table-current-title" style="font-size: 14px;">books</strong>
+            <span class="status-pill" style="padding: 2px 8px; font-size: 11px;">Primary: Neon Postgres</span>
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="text" class="form-input" placeholder="Filter rows..." style="padding: 0.25rem 0.5rem; font-size: 12px; width: 160px;">
+            <button class="btn btn-sm btn-primary" onclick="showToast('Record preview inserted into in-memory store.')">+ Insert Row</button>
+          </div>
+        </div>
+
+        <div class="data-table-container" id="data-table-mount">
+          <!-- Filled dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         VIEW 5: DOCUMENTATION (/docs)
+         ══════════════════════════════════════════════════════ -->
+    <div class="view-container docs-view" id="view-docs">
+      <nav class="docs-nav">
+        <strong style="font-size: 12px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.25rem;">Colt Language</strong>
+        <a href="#doc-overview" class="docs-nav-link active">1. Overview</a>
+        <a href="#doc-collections" class="docs-nav-link">2. Collections & Schemas</a>
+        <a href="#doc-types" class="docs-nav-link">3. Data Types</a>
+        <a href="#doc-annotations" class="docs-nav-link">4. Annotations</a>
+        <a href="#doc-queries" class="docs-nav-link">5. Querying (FIND)</a>
+        <a href="#doc-mutations" class="docs-nav-link">6. Mutations (CREATE, PUT, DELETE)</a>
+        <a href="#doc-atomic" class="docs-nav-link">7. Transactions (ATOMIC)</a>
+        <a href="#doc-diagnostics" class="docs-nav-link">8. Diagnostics Codes</a>
+        <a href="#doc-python" class="docs-nav-link">9. Python SDK (pip install coltane)</a>
+      </nav>
+
+      <div class="docs-body">
+        <div class="docs-section" id="doc-overview">
+          <h1 class="docs-h1">Colt Query Language Specification</h1>
+          <p>Colt is the declarative, multi-model query language for ColtaneDB. It provides a clean, single-language abstraction across relational tables, document projections, vectors, and key-value stores without vendor lock-in.</p>
+          <div class="docs-code">-- Basic Colt statement
+DEFINE COLLECTION users STRICT @backend(neon) {
+  id: uuid @key,
+  email: text @unique,
+  created: time @default(now)
+}</div>
+        </div>
+
+        <div class="docs-section" id="doc-collections">
+          <h2 class="docs-h2">Collections & Schemas</h2>
+          <p>Collections define named datasets. The <code>STRICT</code> modifier enforces explicit field definition and schema validation. Each collection must declare exactly one primary backend using the <code>@backend(provider)</code> annotation.</p>
+          <div class="docs-code">DEFINE COLLECTION articles STRICT @backend(neon) {
+  id: uuid @key,
+  slug: text @unique,
+  body: text,
+  metadata: doc
+}</div>
+        </div>
+
+        <div class="docs-section" id="doc-types">
+          <h2 class="docs-h2">Data Types</h2>
+          <p>Colt includes normative Tier-1 data types mapped to optimal native representation in PostgreSQL:</p>
+          <ul style="padding-left: 1.5rem; display: flex; flex-direction: column; gap: 0.35rem;">
+            <li><code>uuid</code> — 128-bit universally unique identifiers.</li>
+            <li><code>text</code> — Variable length string literals.</li>
+            <li><code>int</code> — 64-bit integer values.</li>
+            <li><code>float</code> — Double precision floating point numbers.</li>
+            <li><code>bool</code> — Two-valued boolean logic (true / false).</li>
+            <li><code>time</code> — Timestamp with timezone (<code>timestamptz</code>).</li>
+            <li><code>doc</code> — JSON/JSONB structured documents with nested path access.</li>
+            <li><code>vector(dimension)</code> — Dense vector embeddings for cosine/euclidean similarity with <code>@index(hnsw)</code>.</li>
+            <li><code>link&lt;Target&gt;</code> — Batched foreign record relationships.</li>
+            <li><code>list&lt;Type&gt;</code> — Homogeneous typed arrays.</li>
+          </ul>
+        </div>
+
+        <div class="docs-section" id="doc-annotations">
+          <h2 class="docs-h2">Annotations</h2>
+          <p>Annotations begin with <code>@</code> and enrich collections or fields with execution and storage metadata:</p>
+          <div class="docs-code">@key              -- Primary key constraint (exactly one per collection)
+@unique           -- Unique constraint index
+@default(now)     -- Statement-time default value
+@index(hnsw)      -- Vector index for fast approximate nearest neighbor search
+@backend(neon)    -- Specifies the primary storage engine</div>
+        </div>
+
+        <div class="docs-section" id="doc-queries">
+          <h2 class="docs-h2">Querying with FIND</h2>
+          <p>Queries retrieve records with field selection, compound filters (<code>WHERE</code>), ordering (<code>ORDER BY</code>), and pagination (<code>LIMIT</code> / <code>OFFSET</code>):</p>
+          <div class="docs-code">FIND books SELECT title, author, metadata.edition
+WHERE views > 10 AND published != null
+ORDER BY views DESC
+LIMIT 20 OFFSET 0</div>
+        </div>
+
+        <div class="docs-section" id="doc-mutations">
+          <h2 class="docs-h2">Mutations (CREATE, PUT, DELETE)</h2>
+          <p>Colt provides explicit record creation, whole-record replacement (<code>PUT</code>), and targeted deletions:</p>
+          <div class="docs-code">-- Insert with auto-generated or specified fields
+CREATE books { title: "Dune", views: 100 }
+
+-- Whole-record update with ON CONFLICT resolution
+PUT books:11111111-1111-4111-8111-111111111111 {
+  title: "Dune Messiah",
+  views: 120
+}
+
+-- Conditional deletion (constant true is rejected)
+DELETE books WHERE views == 0</div>
+        </div>
+
+        <div class="docs-section" id="doc-atomic">
+          <h2 class="docs-h2">Transactions (ATOMIC)</h2>
+          <p>The <code>ATOMIC</code> block encapsulates statements into a single ACID transaction on the underlying primary database:</p>
+          <div class="docs-code">ATOMIC {
+  DELETE books:33333333-3333-4333-8333-833333333333;
+  PUT authors:22222222-2222-4222-8222-222222222222 { name: "Frank Herbert" }
+}</div>
+        </div>
+
+        <div class="docs-section" id="doc-diagnostics">
+          <h2 class="docs-h2">Diagnostics Codes Reference</h2>
+          <p>The compiler reports strict diagnostics formatted as <code>COLT####</code>:</p>
+          <div class="docs-code">COLT1001 -- Unterminated string literal
+COLT1003 -- Unterminated block comment
+COLT2001 -- Unsupported backend target (M1 supports @backend(neon) and @backend(supabase))
+COLT2002 -- Unknown collection reference
+COLT2004 -- Unknown field in projection or filter
+COLT2005 -- Constant-true collection delete rejected (safety gate)
+COLT2006 -- Duplicate collection definition
+COLT2007 -- Duplicate field definition
+COLT2010 -- Vector dimensions must be a positive integer
+COLT2014 -- Missing required non-nullable field
+COLT2016 -- Cross-backend ATOMIC transaction blocked</div>
+        </div>
+
+        <div class="docs-section" id="doc-python">
+          <h2 class="docs-h2">🐍 Python Integration (pip install coltane)</h2>
+          <p>ColtaneDB provides a native Python SDK for running Colt queries, planning executions, and defining schemas in Python workflows:</p>
+          <div class="docs-code">pip install coltane</div>
+          <p>Run Colt scripts directly from Python:</p>
+          <div class="docs-code">import coltane
+
+client = coltane.Client("http://localhost:3000")
+
+# Plan and compile any Colt script
+plan = client.plan("""
+FIND books SELECT title, views
+WHERE views > 10
+ORDER BY views DESC
+LIMIT 10
+""")
+
+for step in plan.steps:
+    print(f"Backend: {step.backend} | Operation: {step.operation}")
+    print(f"SQL: {step.parameterized_statement}")
+    print(f"Parameters: {step.params}")</div>
+          <p>Fluent Python query builder:</p>
+          <div class="docs-code">from coltane import query, collection
+
+# Define schema
+schema = (
+    collection("products", backend="neon")
+    .field("id", "uuid", "@key")
+    .field("title", "text")
+    .field("price", "float")
+)
+print(schema.to_colt())
+
+# Build query
+q = query("products").select("title", "price").where("price < 50.0").limit(20)
+print(q.to_colt())</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         VIEW 6: INFRASTRUCTURE & PROVIDERS
+         ══════════════════════════════════════════════════════ -->
+    <div class="view-container providers-view" id="view-providers">
+      <div class="section-header" style="text-align: left; align-items: flex-start; margin-bottom: 0;">
+        <h2 class="section-title">Connected Backends & Infrastructure</h2>
+        <p class="section-sub">Configured multi-model resources managed inside isolated tenant namespaces.</p>
+      </div>
+
+      <div class="provider-grid" id="provider-grid-mount">
+        <!-- Rendered via JS from /api/providers -->
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div class="footer-inner">
+      <div>
+        <strong>ColtaneDB</strong> · One language for every kind of data.
+      </div>
+      <div style="display: flex; gap: 1rem; align-items: center;">
+        <a href="#studio" onclick="switchView('studio')" style="color: var(--text-muted); text-decoration: none;">Studio IDE</a>
+        <a href="#builder" onclick="switchView('builder')" style="color: var(--text-muted); text-decoration: none;">Visual Builder</a>
+        <a href="#docs" onclick="switchView('docs')" style="color: var(--text-muted); text-decoration: none;">Documentation</a>
+        <a href="https://github.com/itsjustayush/coltanedb" target="_blank" rel="noopener noreferrer" style="color: var(--text-muted); text-decoration: none;">GitHub Repo</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // ══════════════════════════════════════════════════════
+    // STATE & NAVIGATION
+    // ══════════════════════════════════════════════════════
+    let currentView = 'landing';
+    let currentOutputTab = 'plan';
+    let lastCompilationResult = null;
+
+    // View switcher
+    function switchView(viewName) {
+      currentView = viewName;
+      document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active-view'));
+      document.querySelectorAll('.nav-tab-btn').forEach(btn => btn.classList.remove('active'));
+
+      const targetView = document.getElementById('view-' + viewName);
+      if (targetView) targetView.classList.add('active-view');
+
+      const targetNav = document.querySelector(`.nav-tab-btn[data-view="${viewName}"]`);
+      if (targetNav) targetNav.classList.add('active');
+
+      window.location.hash = viewName;
+
+      if (viewName === 'studio') {
+        updateStudioLineNumbers();
+      } else if (viewName === 'table') {
+        renderTableExplorer();
+      } else if (viewName === 'providers') {
+        loadProviders();
+      }
+    }
+
+    document.querySelectorAll('.nav-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchView(btn.getAttribute('data-view')));
+    });
+
+    document.getElementById('launch-studio-btn').addEventListener('click', () => switchView('studio'));
+    document.querySelector('[data-view-target="landing"]').addEventListener('click', (e) => {
+      e.preventDefault();
+      switchView('landing');
+    });
+
+    // ══════════════════════════════════════════════════════
+    // THEME TOGGLE (Dark / Light)
+    // ══════════════════════════════════════════════════════
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const darkIcon = document.getElementById('theme-icon-dark');
+    const lightIcon = document.getElementById('theme-icon-light');
+
+    function setTheme(theme) {
+      if (theme === 'light') {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+        darkIcon.style.display = 'none';
+        lightIcon.style.display = 'block';
+        localStorage.setItem('coltane_theme', 'light');
+      } else {
+        document.documentElement.classList.remove('light');
+        document.documentElement.classList.add('dark');
+        darkIcon.style.display = 'block';
+        lightIcon.style.display = 'none';
+        localStorage.setItem('coltane_theme', 'dark');
+      }
+    }
+
+    const savedTheme = localStorage.getItem('coltane_theme') || 'dark';
+    setTheme(savedTheme);
+
+    themeToggleBtn.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.contains('dark');
+      setTheme(isDark ? 'light' : 'dark');
+    });
+
+    // ══════════════════════════════════════════════════════
+    // TYPEWRITER ANIMATION (Hero)
+    // ══════════════════════════════════════════════════════
+    const sequences = [
+      "One language for every kind of data.",
+      "Relational, Vector, Document, Key-Value.",
+      "Compiled to PostgreSQL with strict isolation.",
+      "The Official Web IDE for Colt & ColtaneDB."
+    ];
+    let seqIdx = 0;
+    let charIdx = 0;
+    let isDeleting = false;
+    const typewriterEl = document.getElementById('typewriter-target');
+
+    function stepTypewriter() {
+      if (!typewriterEl) return;
+      const current = sequences[seqIdx];
+
+      if (isDeleting) {
+        charIdx--;
+        typewriterEl.textContent = current.substring(0, charIdx);
+        if (charIdx <= 0) {
+          isDeleting = false;
+          seqIdx = (seqIdx + 1) % sequences.length;
+          setTimeout(stepTypewriter, 300);
+          return;
+        }
+        setTimeout(stepTypewriter, 25);
+      } else {
+        charIdx++;
+        typewriterEl.textContent = current.substring(0, charIdx);
+        if (charIdx >= current.length) {
+          isDeleting = true;
+          setTimeout(stepTypewriter, 2200);
+          return;
+        }
+        setTimeout(stepTypewriter, 50);
+      }
+    }
+    stepTypewriter();
+
+    // ══════════════════════════════════════════════════════
+    // FAQ ACCORDION
+    // ══════════════════════════════════════════════════════
+    function toggleFaq(button) {
+      const item = button.closest('.faq-item');
+      item.classList.toggle('open');
+    }
+
+    // ══════════════════════════════════════════════════════
+    // STUDIO IDE ENGINE
+    // ══════════════════════════════════════════════════════
+    const studioEditor = document.getElementById('studio-editor');
+    const studioLineNumbers = document.getElementById('studio-line-numbers');
+    const studioOutput = document.getElementById('studio-output');
+    const studioPlanBtn = document.getElementById('studio-plan-btn');
+    const studioStatusText = document.getElementById('studio-status-text');
+    const templateSelect = document.getElementById('template-select');
+    const exportColtBtn = document.getElementById('export-colt-btn');
+    const importColtBtn = document.getElementById('import-colt-btn');
+    const fileImportInput = document.getElementById('file-import-input');
+    const clearEditorBtn = document.getElementById('clear-editor-btn');
+    const dropOverlay = document.getElementById('drop-overlay');
+    const editorPaneDropzone = document.getElementById('editor-pane-dropzone');
+
+    function updateStudioLineNumbers() {
+      const lineNumbersEl = document.getElementById('studio-line-numbers');
+      const editorEl = document.getElementById('studio-editor');
+      if (!lineNumbersEl || !editorEl) return;
+      const count = editorEl.value.split('\n').length;
+      let text = '';
+      for (let i = 1; i <= count; i++) {
+        text += i + '\n';
+      }
+      lineNumbersEl.textContent = text;
+      lineNumbersEl.scrollTop = editorEl.scrollTop;
+    }
+
+    studioEditor.addEventListener('input', updateStudioLineNumbers);
+    studioEditor.addEventListener('scroll', () => {
+      if (studioLineNumbers && studioEditor) {
+        studioLineNumbers.scrollTop = studioEditor.scrollTop;
+      }
+    });
+
+    // Tab key 2 spaces indent
+    studioEditor.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = studioEditor.selectionStart;
+        const end = studioEditor.selectionEnd;
+        studioEditor.value = studioEditor.value.substring(0, start) + '  ' + studioEditor.value.substring(end);
+        studioEditor.selectionStart = studioEditor.selectionEnd = start + 2;
+        updateStudioLineNumbers();
+      } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        runStudioPlan();
+      }
+    });
+
+    // Output tab buttons
+    document.querySelectorAll('[data-output-tab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-output-tab]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentOutputTab = btn.getAttribute('data-output-tab');
+        renderStudioOutput();
+      });
+    });
+
+    async function runStudioPlan() {
+      studioStatusText.textContent = 'Planning...';
+      studioOutput.innerHTML = '<div style="color:var(--text-muted)">⚡ Compiling Colt source and generating PostgreSQL execution plan...</div>';
+
+      try {
+        const res = await fetch('/api/plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source: studioEditor.value })
+        });
+        lastCompilationResult = await res.json();
+        studioStatusText.textContent = 'Compiled cleanly';
+        renderStudioOutput();
+      } catch (err) {
+        studioStatusText.textContent = 'Error';
+        studioOutput.innerHTML = `<div style="color:var(--error)">Error connecting to compiler: ${err.message}</div>`;
+      }
+    }
+
+    function renderStudioOutput() {
+      if (!lastCompilationResult) {
+        studioOutput.innerHTML = '<div style="color:var(--text-muted)">Click "Plan & Compile" to run.</div>';
+        return;
+      }
+
+      if (currentOutputTab === 'plan') {
+        renderPlanTab();
+      } else if (currentOutputTab === 'diagnostics') {
+        renderDiagnosticsTab();
+      } else if (currentOutputTab === 'ast') {
+        fetchAST();
+      } else if (currentOutputTab === 'tokens') {
+        fetchTokens();
+      } else if (currentOutputTab === 'python') {
+        renderPythonTab();
+      } else if (currentOutputTab === 'capabilities') {
+        fetchCapabilities();
+      }
+    }
+
+    function renderPythonTab() {
+      const source = studioEditor.value.trim();
+      const escapedSource = source.replace(/\\/g, '\\\\').replace(/'''/g, "\\'\\'\\'");
+      const code = `# 1. Install official Python package:\n# pip install coltane\n\nimport coltane\n\n# Initialize client pointing to ColtaneDB\nclient = coltane.Client("http://localhost:3000")\n\n# Execute Colt script\nsource = \'\'\'${escapedSource}\'\'\'\n\nplan = client.plan(source)\n\nif plan.is_valid:\n    print(f"✓ Planned successfully with {len(plan.steps)} steps:")\n    for step in plan.steps:\n        print(f"  Backend: {step.backend} | Operation: {step.operation}")\n        print(f"  SQL: {step.parameterized_statement}")\n        if step.params:\n            print(f"  Params: {step.params}")\nelse:\n    for diag in plan.diagnostics:\n        print(f"  Error [{diag.code}]: {diag.message}")\n`;
+      studioOutput.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+        <span style="color:var(--accent); font-weight:600;">🐍 Python (pip install coltane) Snippet</span>
+        <button class="btn btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('python-snippet-code').innerText).then(()=>showToast('✓ Copied Python code to clipboard!'))">Copy Python Code</button>
+      </div>
+      <pre id="python-snippet-code" style="color:#a7f3d0; font-size:12.5px; line-height:1.55; white-space:pre-wrap; word-break:break-all;">${escapeHtml(code)}</pre>`;
+    }
+
+    function renderPlanTab() {
+      const diags = lastCompilationResult.diagnostics || [];
+      if (diags.length > 0) {
+        let html = `<div style="margin-bottom:0.75rem; color:var(--error); font-weight:600;">Compilation Diagnostics (${diags.length}):</div>`;
+        for (const diag of diags) {
+          html += `<div class="diag-item"><span class="diag-code">${diag.code}</span> ${escapeHtml(diag.message)}` +
+                  ` <span class="diag-pos">[line ${diag.span.start.line}:${diag.span.start.column}]</span>` +
+                  (diag.hint ? `<div class="diag-hint">Hint: ${escapeHtml(diag.hint)}</div>` : '') + `</div>`;
+        }
+        studioOutput.innerHTML = html;
+        return;
+      }
+
+      const steps = lastCompilationResult.plan?.steps || [];
+      if (steps.length === 0) {
+        studioOutput.innerHTML = '<div style="color:var(--text-muted)">Zero planned statements. Define a collection or query.</div>';
+        return;
+      }
+
+      let html = `<div style="margin-bottom:0.75rem; color:var(--accent); font-weight:600;">Generated PostgreSQL Execution Plan (${steps.length} steps):</div>`;
+      steps.forEach((step, idx) => {
+        html += `<div class="plan-box">
+          <div class="plan-header">
+            <span>STEP ${idx + 1} · ${step.operation?.toUpperCase()}</span>
+            <span>BACKEND: ${(step.backend || 'neon').toUpperCase()}</span>
+          </div>
+          ${step.parameterizedStatement ? `<div class="plan-sql">${escapeHtml(step.parameterizedStatement)}</div>` : ''}
+          ${step.params && step.params.length > 0 ? `<div class="plan-params">Parameters: ${escapeHtml(JSON.stringify(step.params))}</div>` : ''}
+          ${step.substeps ? `<div class="plan-params">${step.substeps.length} atomic transaction substeps</div>` : ''}
+        </div>`;
+      });
+      studioOutput.innerHTML = html;
+    }
+
+    function renderDiagnosticsTab() {
+      const diags = lastCompilationResult.diagnostics || [];
+      if (diags.length === 0) {
+        studioOutput.innerHTML = '<div style="color:var(--success)">✓ Clean compilation. 0 diagnostics reported.</div>';
+        return;
+      }
+      let html = '';
+      for (const diag of diags) {
+        html += `<div class="diag-item"><span class="diag-code">${diag.code}</span> ${escapeHtml(diag.message)}` +
+                ` <span class="diag-pos">[line ${diag.span.start.line}:${diag.span.start.column}]</span>` +
+                (diag.hint ? `<div class="diag-hint">Hint: ${escapeHtml(diag.hint)}</div>` : '') + `</div>`;
+      }
+      studioOutput.innerHTML = html;
+    }
+
+    async function fetchAST() {
+      studioOutput.textContent = 'Generating AST...';
+      try {
+        const res = await fetch('/api/parse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source: studioEditor.value })
+        });
+        const data = await res.json();
+        studioOutput.textContent = JSON.stringify(data.ast || data, null, 2);
+      } catch (err) {
+        studioOutput.textContent = 'AST Error: ' + err.message;
+      }
+    }
+
+    async function fetchTokens() {
+      studioOutput.textContent = 'Lexing tokens...';
+      try {
+        const res = await fetch('/api/lex', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source: studioEditor.value })
+        });
+        const data = await res.json();
+        studioOutput.textContent = JSON.stringify(data.tokens || data, null, 2);
+      } catch (err) {
+        studioOutput.textContent = 'Lex Error: ' + err.message;
+      }
+    }
+
+    async function fetchCapabilities() {
+      studioOutput.textContent = 'Loading Postgres capabilities...';
+      try {
+        const res = await fetch('/api/capabilities');
+        const cap = await res.json();
+        studioOutput.textContent = JSON.stringify(cap, null, 2);
+      } catch (err) {
+        studioOutput.textContent = 'Capabilities Error: ' + err.message;
+      }
+    }
+
+    studioPlanBtn.addEventListener('click', runStudioPlan);
+
+    // ══════════════════════════════════════════════════════
+    // TEMPLATES
+    // ══════════════════════════════════════════════════════
+    const templates = {
+      library: `-- Colt v0.1: Library Catalogue
+DEFINE COLLECTION authors STRICT @backend(neon) {
+  id: uuid @key,
+  name: text @unique,
+  joined: time @default(now)
+}
+
+DEFINE COLLECTION books STRICT @backend(neon) {
+  id: uuid @key,
+  title: text,
+  author: link<authors>,
+  tags: list<text>,
+  published: time?,
+  metadata: doc,
+  embedding: vector(3) @index(hnsw),
+  views: int @default(0)
+}
+
+FIND books SELECT title, author, metadata.edition
+WHERE views > 10 AND published != null
+ORDER BY views DESC
+LIMIT 20 OFFSET 0`,
+
+      users: `-- Colt v0.1: User Accounts & Profiles
+DEFINE COLLECTION users STRICT @backend(neon) {
+  id: uuid @key,
+  email: text @unique,
+  nickname: text?,
+  created: time @default(now),
+  score: int @default(100)
+}
+
+FIND users SELECT email, nickname, score
+WHERE score >= 50
+ORDER BY created DESC
+LIMIT 50`,
+
+      ecommerce: `-- Colt v0.1: E-Commerce Store
+DEFINE COLLECTION products STRICT @backend(neon) {
+  id: uuid @key,
+  sku: text @unique,
+  title: text,
+  price: float,
+  in_stock: bool @default(true),
+  tags: list<text>
+}
+
+FIND products SELECT title, price
+WHERE price < 99.99 AND in_stock == true
+ORDER BY price ASC
+LIMIT 25`,
+
+      vector: `-- Colt v0.1: Vector Embeddings & Similarity Search
+DEFINE COLLECTION articles STRICT @backend(neon) {
+  id: uuid @key,
+  title: text,
+  embedding: vector(3) @index(hnsw),
+  published: time @default(now)
+}
+
+CREATE articles {
+  title: "AI & Modern Data Stacks",
+  embedding: [0.15, -0.42, 0.88]
+}`,
+
+      atomic: `-- Colt v0.1: Atomic Transaction Block
+DEFINE COLLECTION accounts STRICT @backend(neon) {
+  id: uuid @key,
+  balance: int
+}
+
+ATOMIC {
+  PUT accounts:11111111-1111-4111-8111-111111111111 { balance: 900 };
+  PUT accounts:22222222-2222-4222-8222-222222222222 { balance: 1100 }
+}`
+    };
+
+    templateSelect.addEventListener('change', (e) => {
+      const key = e.target.value;
+      if (templates[key]) {
+        studioEditor.value = templates[key];
+        updateStudioLineNumbers();
+        runStudioPlan();
+      }
+    });
+
+    clearEditorBtn.addEventListener('click', () => {
+      studioEditor.value = '';
+      updateStudioLineNumbers();
+      studioOutput.innerHTML = '<div style="color:var(--text-muted)">Editor cleared.</div>';
+    });
+
+    // ══════════════════════════════════════════════════════
+    // IMPORT & EXPORT (.colt)
+    // ══════════════════════════════════════════════════════
+    const copyPythonBtn = document.getElementById('copy-python-btn');
+    if (copyPythonBtn) {
+      copyPythonBtn.addEventListener('click', () => {
+        document.querySelectorAll('[data-output-tab]').forEach(b => b.classList.remove('active'));
+        const pBtn = document.querySelector('[data-output-tab="python"]');
+        if (pBtn) pBtn.classList.add('active');
+        currentOutputTab = 'python';
+        renderPythonTab();
+      });
+    }
+
+    exportColtBtn.addEventListener('click', () => {
+      const content = studioEditor.value;
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'query.colt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    importColtBtn.addEventListener('click', () => {
+      fileImportInput.click();
+    });
+
+    fileImportInput.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const text = event.target?.result;
+        if (typeof text === 'string') {
+          studioEditor.value = text;
+          updateStudioLineNumbers();
+          runStudioPlan();
+        }
+      };
+      reader.readAsText(file);
+      fileImportInput.value = '';
+    });
+
+    // Drag-and-drop .colt file onto editor
+    if (editorPaneDropzone) {
+      editorPaneDropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropOverlay.classList.add('active');
+      });
+      editorPaneDropzone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dropOverlay.classList.remove('active');
+      });
+      editorPaneDropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropOverlay.classList.remove('active');
+        const file = e.dataTransfer?.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const text = event.target?.result;
+          if (typeof text === 'string') {
+            studioEditor.value = text;
+            updateStudioLineNumbers();
+            runStudioPlan();
+          }
+        };
+        reader.readAsText(file);
+      });
+    }
+
+    // ══════════════════════════════════════════════════════
+    // VIEW 3: VISUAL GUI BUILDER LOGIC
+    // ══════════════════════════════════════════════════════
+    const guiCollName = document.getElementById('gui-coll-name');
+    const guiCollBackend = document.getElementById('gui-coll-backend');
+    const guiFieldsContainer = document.getElementById('gui-fields-container');
+    const guiAddFieldBtn = document.getElementById('gui-add-field-btn');
+    const guiQuerySort = document.getElementById('gui-query-sort');
+    const guiQueryLimit = document.getElementById('gui-query-limit');
+    const guiCodePreview = document.getElementById('gui-code-preview');
+    const guiTransferBtn = document.getElementById('gui-transfer-btn');
+    const guiDownloadBtn = document.getElementById('gui-download-btn');
+
+    function updateGuiCode() {
+      const name = guiCollName.value.trim() || 'my_collection';
+      const backend = guiCollBackend.value || 'neon';
+      const fieldRows = guiFieldsContainer.querySelectorAll('[data-field-row]');
+      
+      const fields = [];
+      const fieldNames = [];
+
+      fieldRows.forEach(row => {
+        const fName = row.querySelector('.field-name').value.trim();
+        const fType = row.querySelector('.field-type').value;
+        const fAnn = row.querySelector('.field-annotation').value;
+        if (fName) {
+          fieldNames.push(fName);
+          const annStr = fAnn ? ' ' + fAnn : '';
+          fields.push(`  ${fName}: ${fType}${annStr}`);
+        }
+      });
+
+      const sort = guiQuerySort.value.trim() || 'id ASC';
+      const limit = guiQueryLimit.value || '10';
+
+      const code = `DEFINE COLLECTION ${name} STRICT @backend(${backend}) {
+${fields.join(',\n')}
+}
+
+FIND ${name} SELECT ${fieldNames.slice(0, 3).join(', ') || '*'}
+ORDER BY ${sort}
+LIMIT ${limit}`;
+
+      guiCodePreview.textContent = code;
+    }
+
+    function removeFieldRow(btn) {
+      const rows = guiFieldsContainer.querySelectorAll('[data-field-row]');
+      if (rows.length <= 1) {
+        showToast('Collections must have at least one field.');
+        return;
+      }
+      btn.closest('.field-row').remove();
+      updateGuiCode();
+    }
+
+    guiAddFieldBtn.addEventListener('click', () => {
+      const row = document.createElement('div');
+      row.className = 'field-row';
+      row.setAttribute('data-field-row', '');
+      row.innerHTML = `
+        <input type="text" class="form-input field-name" placeholder="field_name" value="extra_col">
+        <select class="form-select field-type">
+          <option value="text">text</option>
+          <option value="int">int</option>
+          <option value="float">float</option>
+          <option value="bool">bool</option>
+          <option value="uuid">uuid</option>
+          <option value="time">time</option>
+          <option value="doc">doc</option>
+        </select>
+        <select class="form-select field-annotation">
+          <option value="">None</option>
+          <option value="@unique">@unique</option>
+          <option value="@default(0)">@default(0)</option>
+        </select>
+        <button class="btn btn-sm" onclick="removeFieldRow(this)">✕</button>
+      `;
+      guiFieldsContainer.appendChild(row);
+      attachGuiListeners(row);
+      updateGuiCode();
+    });
+
+    function attachGuiListeners(container) {
+      container.querySelectorAll('input, select').forEach(el => {
+        el.addEventListener('input', updateGuiCode);
+        el.addEventListener('change', updateGuiCode);
+      });
+    }
+
+    attachGuiListeners(document.getElementById('view-builder'));
+    updateGuiCode();
+
+    guiTransferBtn.addEventListener('click', () => {
+      studioEditor.value = guiCodePreview.textContent;
+      switchView('studio');
+      updateStudioLineNumbers();
+      runStudioPlan();
+    });
+
+    guiDownloadBtn.addEventListener('click', () => {
+      const content = guiCodePreview.textContent;
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${guiCollName.value || 'schema'}.colt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    // ══════════════════════════════════════════════════════
+    // VIEW 4: TABLE EXPLORER DATA
+    // ══════════════════════════════════════════════════════
+    const tableData = {
+      books: {
+        cols: ['id (uuid)', 'title (text)', 'author (link)', 'published (time)', 'views (int)'],
+        rows: [
+          ['11111111-1111-4111-8111-111111111111', 'The Left Hand of Darkness', 'Ursula K. Le Guin', '1969-03-01T00:00:00Z', 1420],
+          ['22222222-2222-4222-8222-222222222222', 'The Dispossessed', 'Ursula K. Le Guin', '1974-05-15T00:00:00Z', 980],
+          ['33333333-3333-4333-8333-333333333333', 'Dune', 'Frank Herbert', '1965-08-01T00:00:00Z', 3150]
+        ]
+      },
+      authors: {
+        cols: ['id (uuid)', 'name (text)', 'joined (time)'],
+        rows: [
+          ['22222222-2222-4222-8222-222222222222', 'Ursula K. Le Guin', '2026-01-10T12:00:00Z'],
+          ['44444444-4444-4444-8444-444444444444', 'Frank Herbert', '2026-02-14T09:30:00Z']
+        ]
+      },
+      users: {
+        cols: ['id (uuid)', 'email (text)', 'nickname (text)', 'score (int)'],
+        rows: [
+          ['55555555-5555-4555-8555-555555555555', 'alice@coltane.dev', 'Alice', 100],
+          ['66666666-6666-4666-8666-666666666666', 'bob@coltane.dev', 'Bob', 85],
+          ['77777777-7777-4777-8777-777777777777', 'carol@coltane.dev', 'Carol', 120]
+        ]
+      },
+      metrics: {
+        cols: ['id (uuid)', 'metric_key (text)', 'value (float)', 'timestamp (time)'],
+        rows: [
+          ['88888888-8888-4888-8888-888888888888', 'cpu_usage', 14.2, '2026-09-30T13:00:00Z'],
+          ['99999999-9999-4999-8999-999999999999', 'query_latency_ms', 1.84, '2026-09-30T13:00:00Z']
+        ]
+      }
+    };
+
+    let selectedTable = 'books';
+
+    function renderTableExplorer() {
+      if (typeof tableData === 'undefined' || !tableData) return;
+      const mount = document.getElementById('data-table-mount');
+      const title = document.getElementById('table-current-title');
+      const tableInfo = tableData[selectedTable];
+      if (!mount || !tableInfo) return;
+
+      title.textContent = selectedTable;
+
+      let html = '<table class="data-table"><thead><tr>';
+      tableInfo.cols.forEach(col => {
+        html += `<th>${escapeHtml(col)}</th>`;
+      });
+      html += '</tr></thead><tbody>';
+
+      tableInfo.rows.forEach(row => {
+        html += '<tr>';
+        row.forEach(cell => {
+          html += `<td>${escapeHtml(String(cell))}</td>`;
+        });
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+
+      mount.innerHTML = html;
+    }
+
+    document.querySelectorAll('.collection-item').forEach(item => {
+      item.addEventListener('click', () => {
+        document.querySelectorAll('.collection-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        selectedTable = item.getAttribute('data-table');
+        renderTableExplorer();
+      });
+    });
+
+    // ══════════════════════════════════════════════════════
+    // VIEW 6: PROVIDERS STATUS
+    // ══════════════════════════════════════════════════════
+    async function loadProviders() {
+      const mount = document.getElementById('provider-grid-mount');
+      if (!mount) return;
+      mount.innerHTML = '<div style="color:var(--text-muted)">Loading provider telemetry...</div>';
+
+      try {
+        const res = await fetch('/api/providers');
+        const providers = await res.json();
+        let html = '';
+
+        providers.forEach(p => {
+          html += `<div class="provider-card">
+            <div class="provider-header">
+              <strong style="font-size: 15px;">${escapeHtml(p.name)}</strong>
+              <span class="provider-status-badge">${p.status.toUpperCase()}</span>
+            </div>
+            <div style="font-size: 12px; color: var(--accent); font-family: 'Geist Mono', monospace;">${escapeHtml(p.target || '')}</div>
+            <div style="font-size: 13px; color: var(--text-muted);">${escapeHtml(p.role)}</div>
+            <div style="margin-top: 0.5rem; font-size: 12px; display: flex; flex-direction: column; gap: 0.2rem;">
+              ${p.features ? p.features.map(f => `<span style="color: var(--text-dim);">• ${escapeHtml(f)}</span>`).join('') : ''}
+            </div>
+          </div>`;
+        });
+
+        mount.innerHTML = html;
+      } catch (err) {
+        mount.innerHTML = `<div style="color:var(--error)">Error loading providers: ${err.message}</div>`;
+      }
+    }
+
+    // Check Neon function status for header
+    async function checkNeonStatus() {
+      try {
+        const res = await fetch('/api/hello');
+        const text = await res.text();
+        const pill = document.getElementById('hero-neon-pill');
+        if (pill) pill.textContent = text ? `${text} (Ready)` : 'Neon Function OK';
+      } catch {
+        const pill = document.getElementById('hero-neon-pill');
+        if (pill) pill.textContent = 'Neon: Standby';
+      }
+    }
+    checkNeonStatus();
+
+    // Toast helper
+    function showToast(msg) {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const t = document.createElement('div');
+      t.className = 'toast-msg';
+      t.textContent = msg;
+      container.appendChild(t);
+      setTimeout(() => {
+        t.style.opacity = '0';
+        t.style.transition = 'opacity 0.2s ease';
+        setTimeout(() => t.remove(), 250);
+      }, 3000);
+    }
+
+    // Helper
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // Initialize line numbers & plan
+    updateStudioLineNumbers();
+    runStudioPlan();
+
+    // Check hash on load
+    if (window.location.hash) {
+      const hash = window.location.hash.replace('#', '');
+      if (['landing', 'studio', 'builder', 'table', 'docs', 'providers'].includes(hash)) {
+        switchView(hash);
+      }
+    }
+  </script>
+  <div id="toast-container"></div>
+</body>
+</html>

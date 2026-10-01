@@ -30,10 +30,6 @@ interface CompileCase {
   assertions?: (result: ReturnType<typeof compile>) => void;
 }
 
-function diagnosticCodes(source: string): string[] {
-  return compile(source).diagnostics.map(({ code }) => code);
-}
-
 const users = `DEFINE COLLECTION users STRICT @backend(neon) {
   id: uuid @key,
   email: text @unique,
