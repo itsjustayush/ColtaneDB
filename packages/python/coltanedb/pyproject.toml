@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "coltanedb"
+version = "0.1.0"
+description = "Official Python client and query SDK for ColtaneDB"
+readme = "README.md"
+requires-python = ">=3.8"
+license = "Apache-2.0"
+authors = [
+  { name = "ColtaneDB Team", email = "info.cometlabs@gmail.com" }
+]
+maintainers = [
+  { name = "ColtaneDB Team", email = "info.cometlabs@gmail.com" }
+]
+keywords = ["colt", "coltanedb", "database", "query-language", "postgres", "vector", "sdk"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Database",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://coltanedb.dev"
+Documentation = "https://github.com/itsjustayush/ColtaneDB#readme"
+Repository = "https://github.com/itsjustayush/ColtaneDB.git"
+Issues = "https://github.com/itsjustayush/ColtaneDB/issues"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["coltanedb*"]

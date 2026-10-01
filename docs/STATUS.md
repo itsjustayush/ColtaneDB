@@ -25,8 +25,9 @@ M2 & M2.1 — Tenancy Core and Provider Plugin Framework completed. Multi-provid
   - `FirestoreStoreAdapter`: Document family with path-based isolation `tenants/{tid}/c/{collection}/d/{id}` powered by `firebase-admin` (v14.5) with discrete, JSON, base64, and file-path credential loading.
   - `FirebaseAdminAuthClient`: Direct integration with `firebase-admin/auth` verifying Google OAuth and Firebase ID tokens (`/api/v1/auth/firebase` and `Bearer` token verification).
 - M3 API Layer: Hono-based API (`packages/api`) with API key generation/hashing (`colt_...`), Firebase Auth integration, project management, rate limiter, limits profiles, global kill-switch, and query executor passing queries through `TenantGuard` and `MultiBackendStoreAdapter`.
+- Official Python SDK (`coltanedb`): Scaffolded at `packages/python/coltanedb` with `pyproject.toml` (setuptools build backend, SPDX `Apache-2.0`), comprehensive `README.md`, `ColtaneClient` supporting HTTP query execution (`execute`, `plan`, `parse`, `status`), fluent query and schema builders, and unittest suite passing in CI. Built distributions `coltanedb-0.1.0-py3-none-any.whl` and `coltanedb-0.1.0.tar.gz` verified with `twine check`.
 - Production & Vercel Readiness: Catch-all serverless rewrites configured in `vercel.json` routing to exported handler in `server.ts`; `.vercelignore` isolates secret boundaries.
-- CI Workflow: Corrected `.nvmrc` Node.js version target from `2424` typo to `24`, unblocking GitHub Actions verification runs.
+- CI Workflow: Corrected `.nvmrc` Node.js version target from `2424` typo to `24`, unblocking GitHub Actions verification runs; added automated Python test step for `packages/python/coltanedb`.
 - Clean credential posture: secrets live solely in `.env.local` (Git-ignored) and provider secret stores; `.env.example` updated with Supabase and Firebase placeholders; no provider credentials in tracked code or client bundles.
 
 ## Run and test
