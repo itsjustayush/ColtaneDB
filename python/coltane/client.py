@@ -120,5 +120,5 @@ class Client:
         return ParseResult(ast=res.get("ast", {}), diagnostics=diags)
 
     def execute(self, source: str) -> PlanResult:
-        """Alias for planning/executing a Colt script."""
+        """Compatibility alias for plan(); this preview does not execute queries."""
         return self.plan(source)

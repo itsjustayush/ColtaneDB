@@ -5,7 +5,7 @@ import { lex, parse } from './packages/parser/src/index.ts';
 import { compile, postgresCapabilities } from './packages/compiler/src/index.ts';
 import hello from './hello.ts';
 
-const PORT = 3000;
+const PORT = Number(process.env.PORT ?? process.env.API_PORT ?? 3000);
 const HOST = '0.0.0.0';
 
 function readBody(req: IncomingMessage): Promise<string> {
@@ -67,57 +67,35 @@ function getProvidersStatus() {
   return [
     {
       id: 'neon',
-      name: 'Neon Postgres',
-      role: 'Primary Relational & Vector Store',
-      status: process.env.DATABASE_URL ? 'configured' : 'active',
+      name: 'PostgreSQL plan target',
+      role: 'Colt compiler output; no database connection or execution.',
+      status: 'plan-only',
       target: '@backend(neon)',
-      features: ['HNSW Vector Indexing', 'Postgres Schema DDL', 'JSONB Document Projections'],
-      projectId: process.env.NEON_PROJECT_ID || 'wispy-dust-72068559',
-      branch: process.env.NEON_BRANCH || 'production',
-      functionUrl: process.env.NEON_FUNCTION_API_URL || 'https://br-red-morning-az62ssg7-api.compute.c-3.ap-southeast-1.aws.neon.tech/',
-    },
-    {
-      id: 'storage',
-      name: 'Neon Object Storage',
-      role: 'S3-Compatible Binary & Asset Store',
-      status: process.env.AWS_ACCESS_KEY_ID ? 'configured' : 'standby',
-      target: 'coltbucket',
-      features: ['Private Buckets', 'Presigned URLs', 'Attachment Links'],
-      bucket: process.env.S3_BUCKET || 'coltbucket',
-      region: process.env.AWS_REGION || 'ap-southeast-1',
-    },
-    {
-      id: 'ai-gateway',
-      name: 'Neon AI Gateway',
-      role: 'AI Model Proxy & Embeddings',
-      status: process.env.NEON_AI_GATEWAY_TOKEN ? 'configured' : 'standby',
-      target: 'Embeddings & Reranking',
-      features: ['Vector Generation', 'Embedding Pipeline', 'Rate Limiting'],
+      features: ['Schema and query plan generation'],
     },
     {
       id: 'redis',
       name: 'Upstash Redis',
-      role: 'Caching, Ephemeral KV & Live Streams',
-      status: process.env.UPSTASH_REDIS_REST_URL ? 'configured' : 'standby',
+      role: 'Adapter planned; not available in this preview.',
+      status: 'planned',
       target: '@backend(redis)',
-      features: ['Sub-millisecond KV', 'TTL Keys', 'Live Subscriptions'],
+      features: [],
     },
     {
       id: 'mongodb',
       name: 'MongoDB Atlas',
-      role: 'Document Store Projection',
-      status: process.env.MONGODB_URI ? 'configured' : 'standby',
+      role: 'Adapter planned; not available in this preview.',
+      status: 'planned',
       target: '@backend(mongodb)',
-      features: ['Flexible Schema Projections', 'Document Aggregations'],
+      features: [],
     },
     {
       id: 'firebase',
       name: 'Firebase Firestore',
-      role: 'Realtime Sync & Document Engine',
-      status: process.env.FIREBASE_PROJECT_ID ? 'configured' : 'standby',
+      role: 'Adapter planned; not available in this preview.',
+      status: 'planned',
       target: '@backend(firestore)',
-      features: ['Client SDK Sync', 'Offline Persistence', 'RBAC Security Rules'],
-      projectId: process.env.FIREBASE_PROJECT_ID || 'coltanedb',
+      features: [],
     },
   ];
 }
@@ -225,7 +203,7 @@ const server = createServer(async (req, res) => {
       const parsed = parse(source);
       const compiled = compile(source);
       sendJson(res, 200, {
-        success: true,
+        success: parsed.diagnostics.length === 0 && compiled.diagnostics.length === 0,
         filename: body.filename || 'imported.colt',
         source,
         diagnostics: compiled.diagnostics,

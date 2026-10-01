@@ -85,6 +85,10 @@ function compileFieldPath(path: FieldPath, _model: CollectionModel, params: Para
 function jsonValue(expression: Expression): unknown {
   if (expression.type === 'Literal') return expression.value;
   if (expression.type === 'NumberLiteral') return Number(expression.raw);
+  if (expression.type === 'Unary' && expression.operator === '-') {
+    const operand = jsonValue(expression.operand);
+    return typeof operand === 'number' ? -operand : undefined;
+  }
   if (expression.type === 'DurationLiteral' || expression.type === 'TimeLiteral') return expression.raw;
   if (expression.type === 'ObjectLiteral') {
     return Object.fromEntries(expression.fields.map((field) => [field.name, jsonValue(field.value)]));
@@ -110,7 +114,7 @@ function compileExpression(expression: Expression, model: CollectionModel, param
     case 'Literal':
       return `${parameter({ kind: 'constant', value: expression.value }, params)}`;
     case 'NumberLiteral':
-      return `${parameter({ kind: 'constant', value: expression.raw }, params)}`;
+      return `${parameter({ kind: 'constant', value: Number(expression.raw) }, params)}`;
     case 'DurationLiteral':
     case 'TimeLiteral':
       return `${parameter({ kind: 'constant', value: expression.raw }, params)}`;
@@ -197,7 +201,7 @@ function compileInsert(
         span: id.span,
       });
     }
-  } else {
+  } else if (!supplied.has(primary.name)) {
     values.unshift({
       name: primary.name,
       value: { type: 'Call', name: 'gen_random_uuid', args: [], span: statement.span },
@@ -227,6 +231,20 @@ function compileInsert(
   const names = values.map((field) => quoteIdentifier(field.name));
   const placeholders = values.map((field) => {
     if (field.value.type === 'Call' && field.value.name === 'gen_random_uuid') return 'gen_random_uuid()';
+    const definition = model.statement.fields.find((candidate) => candidate.name === field.name);
+    if (definition?.valueType.kind === 'list' && field.value.type === 'ListLiteral') {
+      return parameter({ kind: 'constant', value: jsonValue(field.value), transform: 'array' }, params);
+    }
+    if (definition?.valueType.kind === 'vector' && field.value.type === 'ListLiteral') {
+      const values = field.value.items.map(jsonValue);
+      const vector = `[${values.join(',')}]`;
+      const marker = parameter({ kind: 'constant', value: vector, transform: 'vector' }, params);
+      return `${marker}::vector(${definition.valueType.dimension})`;
+    }
+    if (definition?.valueType.kind === 'primitive' && definition.valueType.name === 'doc' && field.value.type === 'ObjectLiteral') {
+      const marker = parameter({ kind: 'constant', value: JSON.stringify(jsonValue(field.value)), transform: 'json' }, params);
+      return `${marker}::jsonb`;
+    }
     return compileExpression(field.value, model, params);
   });
   let sql = `INSERT INTO ${quoteIdentifier(model.name)} (${names.join(', ')}) VALUES (${placeholders.join(', ')})`;
@@ -234,9 +252,14 @@ function compileInsert(
     const updates = values
       .filter((field) => field.name !== primary.name && !getAnnotation(model.statement.fields.find((candidate) => candidate.name === field.name), 'readonly'))
       .map((field) => `${quoteIdentifier(field.name)} = EXCLUDED.${quoteIdentifier(field.name)}`);
+    const readonlyChecks = values
+      .filter((field) => field.name !== primary.name && supplied.has(field.name) && getAnnotation(model.statement.fields.find((candidate) => candidate.name === field.name), 'readonly'))
+      .map((field) => `${quoteIdentifier(model.name)}.${quoteIdentifier(field.name)} IS NOT DISTINCT FROM EXCLUDED.${quoteIdentifier(field.name)}`);
     sql += updates.length > 0
-      ? ` ON CONFLICT (${quoteIdentifier(primary.name)}) DO UPDATE SET ${updates.join(', ')}`
-      : ` ON CONFLICT (${quoteIdentifier(primary.name)}) DO NOTHING`;
+      ? ` ON CONFLICT (${quoteIdentifier(primary.name)}) DO UPDATE SET ${updates.join(', ')}${readonlyChecks.length ? ` WHERE ${readonlyChecks.join(' AND ')}` : ''}`
+      : readonlyChecks.length > 0
+        ? ` ON CONFLICT (${quoteIdentifier(primary.name)}) DO UPDATE SET ${quoteIdentifier(primary.name)} = EXCLUDED.${quoteIdentifier(primary.name)} WHERE ${readonlyChecks.join(' AND ')}`
+        : ` ON CONFLICT (${quoteIdentifier(primary.name)}) DO NOTHING`;
   } else {
     sql += ` ON CONFLICT (${quoteIdentifier(primary.name)}) DO NOTHING`;
   }

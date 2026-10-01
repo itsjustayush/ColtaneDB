@@ -7,7 +7,7 @@ export interface ParameterBinding {
   value?: unknown;
   name?: string;
   expression?: string;
-  transform?: 'json';
+  transform?: 'json' | 'array' | 'vector';
 }
 
 export interface PlanStep {

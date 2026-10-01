@@ -202,6 +202,39 @@
       gap: 0.65rem;
     }
 
+    @media (max-width: 1100px) {
+      header.navbar {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding: 0.65rem 1rem;
+      }
+      .nav-left {
+        flex: 1 1 100%;
+        min-width: 0;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+      .nav-tabs {
+        flex: 1 1 100%;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+      }
+      .nav-tabs::-webkit-scrollbar { display: none; }
+      .nav-tab-btn { flex: 0 0 auto; }
+      .nav-right {
+        width: 100%;
+        justify-content: flex-end;
+      }
+      .studio-actions-left {
+        flex-wrap: wrap;
+        min-width: 0;
+      }
+    }
+
     /* GitHub Star Pill Button */
     .github-btn {
       display: inline-flex;
@@ -1179,13 +1212,15 @@
       flex-wrap: wrap;
       gap: 1rem;
     }
+
+    .view-container:not(.active-view) { display: none; }
   </style>
 </head>
 <body>
 
   <!-- Top Banner -->
   <div class="top-bar">
-    <span>✨ <strong>ColtaneDB Studio v0.1</strong> is now live · One language for Relational, Vector, Document & Key-Value</span>
+    <span><strong>Colt v0.1 preview</strong> · Parse and plan only · Database writes are disabled</span>
   </div>
 
   <!-- Main Navbar -->
@@ -1201,7 +1236,7 @@
 
       <nav class="nav-tabs">
         <button class="nav-tab-btn active" data-view="landing">Home</button>
-        <button class="nav-tab-btn" data-view="studio">SQL / Colt IDE</button>
+        <button class="nav-tab-btn" data-view="studio">Colt IDE</button>
         <button class="nav-tab-btn" data-view="builder">Visual Builder</button>
         <button class="nav-tab-btn" data-view="table">Table Explorer</button>
         <button class="nav-tab-btn" data-view="docs">Documentation</button>
@@ -1210,13 +1245,13 @@
     </div>
 
     <div class="nav-right">
-      <!-- GitHub button with private repo stars info -->
+      <!-- A private repository has no public star count. -->
       <a href="https://github.com/itsjustayush/coltanedb" target="_blank" rel="noopener noreferrer" class="github-btn" title="View ColtaneDB on GitHub">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
         </svg>
         <span>GitHub</span>
-        <span class="github-star-count">★ 148</span>
+        <span class="github-star-count">Private</span>
       </a>
 
       <!-- Dark/Light Mode Toggle -->
@@ -1263,9 +1298,7 @@
         </div>
 
         <p class="hero-description">
-          ColtaneDB is the unified query router, compiler, and developer instrument built around 
-          <strong class="shimmer-text">Colt</strong>. Stop juggling SQL, MQL, Redis commands, and Vector APIs. 
-          Write declarative <code>.colt</code> queries planned to PostgreSQL, Redis, MongoDB, and Firestore.
+          <strong class="shimmer-text">Colt</strong> is ColtaneDB's custom query language. The v0.1 preview parses Colt and generates parameterized PostgreSQL plans; it does not execute database writes.
         </p>
 
         <div class="hero-actions">
@@ -1284,17 +1317,17 @@
         <div class="live-status-pills">
           <div class="status-pill">
             <span class="status-dot"></span>
-            <span>Compiler Active · In-Site Parser</span>
+            <span>Compiler preview · Parser available</span>
           </div>
           <div class="status-pill">
             <span class="status-dot"></span>
-            <span id="hero-neon-pill">Neon Function Connected</span>
+            <span id="hero-neon-pill">PostgreSQL planning only</span>
           </div>
           <div class="status-pill">
-            <span>118 Unit Tests Passing</span>
+            <span>No database execution</span>
           </div>
           <div class="status-pill">
-            <span>TenantGuard Zero-Leak</span>
+            <span>TenantGuard not yet implemented</span>
           </div>
         </div>
       </section>
@@ -1322,25 +1355,25 @@
           <div class="feature-card">
             <div class="feature-icon-badge">📦</div>
             <h3 class="feature-title">Import & Export .colt Files</h3>
-            <p class="feature-desc">Download your query files as native <code>.colt</code> scripts with a single click. Drag-and-drop any <code>.colt</code> file into the studio to parse and run instantly.</p>
+            <p class="feature-desc">Download a script as a native <code>.colt</code> file or import one to parse and preview its plan. Import does not execute database changes.</p>
           </div>
 
           <div class="feature-card">
             <div class="feature-icon-badge">🧠</div>
             <h3 class="feature-title">Native Vectors & HNSW</h3>
-            <p class="feature-desc">First-class vector support via <code>vector(dim) @index(hnsw)</code>. Compile high-dimensional similarity searches directly to pgvector on Neon.</p>
+            <p class="feature-desc">The parser recognizes vector schema declarations. Vector search and verified pgvector execution are not part of this preview.</p>
           </div>
 
           <div class="feature-card">
             <div class="feature-icon-badge">🔒</div>
             <h3 class="feature-title">Zero Injection & TenantGuard</h3>
-            <p class="feature-desc">Parameterized statements guarantee user values never concatenate into SQL strings. Database-enforced isolation keeps tenant namespaces separated.</p>
+            <p class="feature-desc">Generated plans keep values separate from SQL text. Tenant isolation and database execution are not yet implemented in this preview.</p>
           </div>
 
           <div class="feature-card">
             <div class="feature-icon-badge">🔄</div>
             <h3 class="feature-title">Multi-Model Projections</h3>
-            <p class="feature-desc">One primary store per collection, with derived projections across Redis for caching, MongoDB for JSON documents, and Firestore for client sync.</p>
+            <p class="feature-desc">The v1 architecture assigns one primary backend per collection. Additional adapters and projections are planned, not active here.</p>
           </div>
         </div>
       </section>
@@ -1420,7 +1453,7 @@
               <span class="faq-symbol">+</span>
             </button>
             <div class="faq-content">
-              Yes! You can download any script from the Studio IDE as a <code>.colt</code> file or upload/drag-and-drop any existing <code>.colt</code> file from your machine to parse and run it immediately.
+              Yes. You can download a script as a <code>.colt</code> file or upload/drag-and-drop one to load, parse, and preview its plan. The preview does not apply changes to a database.
             </div>
           </div>
 
@@ -1430,7 +1463,7 @@
               <span class="faq-symbol">+</span>
             </button>
             <div class="faq-content">
-              Absolutely. The Colt compiler never concatenates user values into query strings. Every filter, literal, and parameter is bound via PostgreSQL parameter bindings (<code>$1, $2...</code>), guaranteeing parameterized execution.
+              The current compiler emits parameterized PostgreSQL plans and keeps values out of SQL text. Plans are not executed by this preview; runtime authorization and tenant isolation are still under development.
             </div>
           </div>
         </div>
@@ -1464,7 +1497,7 @@
           <button class="btn btn-sm" id="export-colt-btn" title="Download current query as .colt file">
             <span>📤 Export .colt</span>
           </button>
-          <button class="btn btn-sm" id="copy-python-btn" title="Run in Python (pip install coltane)">
+          <button class="btn btn-sm" id="copy-python-btn" title="Use the local Python SDK preview">
             <span>🐍 Python (pip)</span>
           </button>
         </div>
@@ -1656,14 +1689,14 @@ LIMIT 20 OFFSET 0</textarea>
     </div>
 
     <!-- ══════════════════════════════════════════════════════
-         VIEW 4: TABLE EXPLORER (Supabase Table Viewer)
+         VIEW 4: SAMPLE TABLE EXPLORER
          ══════════════════════════════════════════════════════ -->
     <div class="view-container table-view" id="view-table">
       <!-- Sidebar -->
       <div class="table-sidebar">
         <div class="table-sidebar-header">
-          <span>COLLECTIONS (4)</span>
-          <span style="cursor: pointer;" title="Refresh tables" onclick="renderTableExplorer()">⟳</span>
+            <span>SAMPLE COLLECTIONS (4)</span>
+            <span style="cursor: pointer;" title="Refresh sample data" onclick="renderTableExplorer()">⟳</span>
         </div>
         <div class="collections-list">
           <div class="collection-item active" data-table="books">
@@ -1690,11 +1723,11 @@ LIMIT 20 OFFSET 0</textarea>
         <div class="table-toolbar">
           <div style="display: flex; align-items: center; gap: 0.75rem;">
             <strong id="table-current-title" style="font-size: 14px;">books</strong>
-            <span class="status-pill" style="padding: 2px 8px; font-size: 11px;">Primary: Neon Postgres</span>
+            <span class="status-pill" style="padding: 2px 8px; font-size: 11px;">Sample data · no connection</span>
           </div>
           <div style="display: flex; gap: 0.5rem;">
             <input type="text" class="form-input" placeholder="Filter rows..." style="padding: 0.25rem 0.5rem; font-size: 12px; width: 160px;">
-            <button class="btn btn-sm btn-primary" onclick="showToast('Record preview inserted into in-memory store.')">+ Insert Row</button>
+            <button class="btn btn-sm btn-primary" onclick="showToast('Sample row added to the local preview only.')">+ Insert Row</button>
           </div>
         </div>
 
@@ -1718,7 +1751,7 @@ LIMIT 20 OFFSET 0</textarea>
         <a href="#doc-mutations" class="docs-nav-link">6. Mutations (CREATE, PUT, DELETE)</a>
         <a href="#doc-atomic" class="docs-nav-link">7. Transactions (ATOMIC)</a>
         <a href="#doc-diagnostics" class="docs-nav-link">8. Diagnostics Codes</a>
-        <a href="#doc-python" class="docs-nav-link">9. Python SDK (pip install coltane)</a>
+        <a href="#doc-python" class="docs-nav-link">9. Python SDK preview</a>
       </nav>
 
       <div class="docs-body">
@@ -1798,7 +1831,7 @@ DELETE books WHERE views == 0</div>
 
         <div class="docs-section" id="doc-atomic">
           <h2 class="docs-h2">Transactions (ATOMIC)</h2>
-          <p>The <code>ATOMIC</code> block encapsulates statements into a single ACID transaction on the underlying primary database:</p>
+          <p>The compiler can plan supported single-primary <code>ATOMIC</code> blocks. This preview does not execute transactions.</p>
           <div class="docs-code">ATOMIC {
   DELETE books:33333333-3333-4333-8333-833333333333;
   PUT authors:22222222-2222-4222-8222-222222222222 { name: "Frank Herbert" }
@@ -1808,8 +1841,10 @@ DELETE books WHERE views == 0</div>
         <div class="docs-section" id="doc-diagnostics">
           <h2 class="docs-h2">Diagnostics Codes Reference</h2>
           <p>The compiler reports strict diagnostics formatted as <code>COLT####</code>:</p>
-          <div class="docs-code">COLT1001 -- Unterminated string literal
-COLT1003 -- Unterminated block comment
+          <div class="docs-code">COLT1001 -- Unexpected character
+COLT1003 -- Malformed numeric literal
+COLT1005 -- Unterminated string literal
+COLT1006 -- Unterminated block comment
 COLT2001 -- Unsupported backend target (M1 supports @backend(neon) and @backend(supabase))
 COLT2002 -- Unknown collection reference
 COLT2004 -- Unknown field in projection or filter
@@ -1822,9 +1857,9 @@ COLT2016 -- Cross-backend ATOMIC transaction blocked</div>
         </div>
 
         <div class="docs-section" id="doc-python">
-          <h2 class="docs-h2">🐍 Python Integration (pip install coltane)</h2>
-          <p>ColtaneDB provides a native Python SDK for running Colt queries, planning executions, and defining schemas in Python workflows:</p>
-          <div class="docs-code">pip install coltane</div>
+          <h2 class="docs-h2">Python SDK preview</h2>
+          <p>The Python package is in this repository and is not published to PyPI yet. Install it from a local checkout:</p>
+          <div class="docs-code">python -m pip install -e ./python</div>
           <p>Run Colt scripts directly from Python:</p>
           <div class="docs-code">import coltane
 
@@ -1866,8 +1901,8 @@ print(q.to_colt())</div>
          ══════════════════════════════════════════════════════ -->
     <div class="view-container providers-view" id="view-providers">
       <div class="section-header" style="text-align: left; align-items: flex-start; margin-bottom: 0;">
-        <h2 class="section-title">Connected Backends & Infrastructure</h2>
-        <p class="section-sub">Configured multi-model resources managed inside isolated tenant namespaces.</p>
+        <h2 class="section-title">Backend implementation status</h2>
+        <p class="section-sub">This preview generates PostgreSQL plans only. No provider data is read or changed.</p>
       </div>
 
       <div class="provider-grid" id="provider-grid-mount">
@@ -2084,7 +2119,12 @@ print(q.to_colt())</div>
           body: JSON.stringify({ source: studioEditor.value })
         });
         lastCompilationResult = await res.json();
-        studioStatusText.textContent = 'Compiled cleanly';
+          const diagnosticCount = lastCompilationResult.diagnostics?.length ?? 0;
+          studioStatusText.textContent = diagnosticCount > 0
+            ? `${diagnosticCount} diagnostic${diagnosticCount === 1 ? '' : 's'}`
+            : lastCompilationResult.plan
+              ? 'Plan ready · no database changes'
+              : 'No plan generated';
         renderStudioOutput();
       } catch (err) {
         studioStatusText.textContent = 'Error';
@@ -2117,11 +2157,15 @@ print(q.to_colt())</div>
       const source = studioEditor.value.trim();
       const escapedSource = source.replace(/\\/g, '\\\\').replace(/'''/g, "\\'\\'\\'");
       const code = `# 1. Install official Python package:\n# pip install coltane\n\nimport coltane\n\n# Initialize client pointing to ColtaneDB\nclient = coltane.Client("http://localhost:3000")\n\n# Execute Colt script\nsource = \'\'\'${escapedSource}\'\'\'\n\nplan = client.plan(source)\n\nif plan.is_valid:\n    print(f"✓ Planned successfully with {len(plan.steps)} steps:")\n    for step in plan.steps:\n        print(f"  Backend: {step.backend} | Operation: {step.operation}")\n        print(f"  SQL: {step.parameterized_statement}")\n        if step.params:\n            print(f"  Params: {step.params}")\nelse:\n    for diag in plan.diagnostics:\n        print(f"  Error [{diag.code}]: {diag.message}")\n`;
+      const codeForDisplay = code
+        .replace('# 1. Install official Python package:', '# Local checkout only: python -m pip install -e ./python')
+        .replace('# pip install coltane', '# PyPI publication is planned; this package is not released yet.')
+        .replace('# Execute Colt script', '# Compile and plan only; no database writes are performed.');
       studioOutput.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
-        <span style="color:var(--accent); font-weight:600;">🐍 Python (pip install coltane) Snippet</span>
+        <span style="color:var(--accent); font-weight:600;">🐍 Python SDK preview snippet</span>
         <button class="btn btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('python-snippet-code').innerText).then(()=>showToast('✓ Copied Python code to clipboard!'))">Copy Python Code</button>
       </div>
-      <pre id="python-snippet-code" style="color:#a7f3d0; font-size:12.5px; line-height:1.55; white-space:pre-wrap; word-break:break-all;">${escapeHtml(code)}</pre>`;
+      <pre id="python-snippet-code" style="color:#a7f3d0; font-size:12.5px; line-height:1.55; white-space:pre-wrap; word-break:break-all;">${escapeHtml(codeForDisplay)}</pre>`;
     }
 
     function renderPlanTab() {
@@ -2580,7 +2624,7 @@ LIMIT ${limit}`;
     async function loadProviders() {
       const mount = document.getElementById('provider-grid-mount');
       if (!mount) return;
-      mount.innerHTML = '<div style="color:var(--text-muted)">Loading provider telemetry...</div>';
+      mount.innerHTML = '<div style="color:var(--text-muted)">Loading implementation status...</div>';
 
       try {
         const res = await fetch('/api/providers');
@@ -2607,19 +2651,8 @@ LIMIT ${limit}`;
       }
     }
 
-    // Check Neon function status for header
-    async function checkNeonStatus() {
-      try {
-        const res = await fetch('/api/hello');
-        const text = await res.text();
-        const pill = document.getElementById('hero-neon-pill');
-        if (pill) pill.textContent = text ? `${text} (Ready)` : 'Neon Function OK';
-      } catch {
-        const pill = document.getElementById('hero-neon-pill');
-        if (pill) pill.textContent = 'Neon: Standby';
-      }
-    }
-    checkNeonStatus();
+    const compilerStatus = document.getElementById('hero-neon-pill');
+    if (compilerStatus) compilerStatus.textContent = 'PostgreSQL planning only';
 
     // Toast helper
     function showToast(msg) {

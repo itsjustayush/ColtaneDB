@@ -4,14 +4,16 @@ Official Python client for **ColtaneDB** and the **Colt** query language (`.colt
 
 ## Installation
 
+This package has not been published to PyPI yet. From the repository root, install the local package with:
+
 ```bash
-pip install coltane
+python -m pip install -e ./python
 ```
 
-Or install in development mode from the repository root:
+After a release is published, the intended PyPI installation will be:
 
 ```bash
-pip install -e python/
+python -m pip install coltane
 ```
 
 ## Quick Start
@@ -22,7 +24,7 @@ import coltane
 # Initialize client
 client = coltane.Client("http://localhost:3000")
 
-# Write raw Colt query
+# Plan raw Colt query. This preview does not execute database operations.
 source = """
 DEFINE COLLECTION books STRICT @backend(neon) {
   id: uuid @key,
@@ -36,7 +38,7 @@ ORDER BY views DESC
 LIMIT 10
 """
 
-# Plan and compile to PostgreSQL
+# Plan and compile to PostgreSQL; no database writes are performed.
 plan = client.plan(source)
 
 if plan.is_valid:

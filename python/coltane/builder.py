@@ -45,7 +45,7 @@ class QueryBuilder:
         if self._limit is not None:
             query += f"\nLIMIT {self._limit}"
         if self._offset is not None:
-            query += f" OFFSET {self._offset}"
+            query += f"\nOFFSET {self._offset}"
         return query
 
     def __str__(self) -> str:

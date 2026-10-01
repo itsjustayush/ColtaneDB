@@ -3,9 +3,6 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "workspaces": [
-    "packages/*"
-  ],
   "packageManager": "pnpm@10.34.6",
   "engines": {
     "node": "24.x"
@@ -19,7 +16,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@coltanedb/cli": "*",
+    "@coltanedb/cli": "workspace:*",
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.10.0",
     "eslint": "^10.0.1",

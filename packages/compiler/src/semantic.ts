@@ -178,7 +178,8 @@ function validateAssignment(
     return;
   }
   const expected = typeName(field.valueType);
-  const actual = expressionType(expression, model);
+  const inferred = expressionType(expression, model);
+  const actual = inferred === 'string' ? 'text' : inferred;
   const compatible =
     actual === undefined ||
     actual === expected ||
@@ -332,6 +333,10 @@ function validateRecordId(id: RecordId, model: CollectionModel, diagnostics: Com
 }
 
 function validateAtomic(statement: AtomicStatement, catalog: Catalog, diagnostics: CompilerDiagnostic[]): CollectionModel | undefined {
+  if (statement.statements.length === 0) {
+    diagnostic(diagnostics, 'COLT2020', 'ATOMIC requires at least one supported statement.', statement.span);
+    return undefined;
+  }
   const models = statement.statements.map((child) => {
     const name = collectionFor(child);
     return name ? catalog.get(name) : undefined;
