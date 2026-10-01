@@ -17,14 +17,15 @@ M2 & M2.1 — Tenancy Core and Provider Plugin Framework completed. Multi-provid
 - M2 Tenancy Core: `TenantGuard`, `TenantManager`, opaque ID generation (`tnt_...`), in-memory fake adapter, and `NeonAdapter` implementing `ct_<tid>` schema and `SET LOCAL ROLE` isolation.
 - M2.1 Provider Plugin Framework: `ProviderRegistry`, family manifests (`postgres`, `sqlite`, `document`, `kv`, `object`), logical type maps, quota models, and strict D8 within-family spillover boundary enforcement.
 - Multi-Provider Tenant Isolation Adapters:
-  - `RedisStoreAdapter`: KV family with strict `t:{tid}:` key prefix isolation.
+  - `MultiBackendStoreAdapter`: Dynamic query routing across target database engines per collection `@backend` placement.
+  - `RedisStoreAdapter`: KV family with strict `t:{tid}:` key prefix isolation, supporting `UpstashRestRedisClient` for native REST execution.
   - `TursoStoreAdapter`: SQLite family with injected `_tid` row isolation.
   - `SupabaseStoreAdapter`: Postgres family with strict `ct_<tid>` schema naming and hard guard against direct `public` schema access.
   - `MongoStoreAdapter`: Document family with mandatory `{ _tid }` document injection and query scoping.
   - `FirestoreStoreAdapter`: Document family with path-based isolation `tenants/{tid}/c/{collection}/d/{id}`.
-- M3 API Layer: Hono-based API (`packages/api`) with API key generation/hashing (`colt_...`), project management, rate limiter, limits profiles, global kill-switch, and query executor passing queries through `TenantGuard`.
-- Web IDE preview: Colt editor, syntax formatting, plan visualizer, interactive visual builder, table explorer, and "Show Colt" toggle.
-- Clean credential posture: secrets live solely in `.env.local` (Git-ignored) and provider secret stores; `.env.example` remains placeholder-only; no provider credentials in tracked code or client bundles.
+- M3 API Layer: Hono-based API (`packages/api`) with API key generation/hashing (`colt_...`), project management, rate limiter, limits profiles, global kill-switch, and query executor passing queries through `TenantGuard` and `MultiBackendStoreAdapter`.
+- Production & Vercel Readiness: Catch-all serverless rewrites configured in `vercel.json` routing to exported handler in `server.ts`; `.vercelignore` isolates secret boundaries.
+- Clean credential posture: secrets live solely in `.env.local` (Git-ignored) and provider secret stores; `.env.example` updated with Supabase placeholders; no provider credentials in tracked code or client bundles.
 
 ## Run and test
 
