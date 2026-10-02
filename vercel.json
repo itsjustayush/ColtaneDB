@@ -4,6 +4,7 @@
     "app": {
       "root": ".",
       "runtime": "node",
+      "entrypoint": "server.ts",
       "buildCommand": "pnpm build",
       "installCommand": "pnpm install --frozen-lockfile",
       "bindings": [
@@ -17,7 +18,8 @@
     },
     "python": {
       "root": "python",
-      "runtime": "python"
+      "runtime": "python",
+      "entrypoint": "index.py"
     }
   },
   "rewrites": [
