@@ -318,6 +318,67 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    // Static SEO, Favicon, and Asset routes
+    if (url.pathname === '/robots.txt') {
+      const content = await readFile(resolve(process.cwd(), 'robots.txt'), 'utf8');
+      res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=86400' });
+      res.end(content);
+      return;
+    }
+    if (url.pathname === '/sitemap.xml') {
+      const content = await readFile(resolve(process.cwd(), 'sitemap.xml'), 'utf8');
+      res.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=86400' });
+      res.end(content);
+      return;
+    }
+    if (url.pathname === '/site.webmanifest') {
+      const content = await readFile(resolve(process.cwd(), 'site.webmanifest'), 'utf8');
+      res.writeHead(200, { 'Content-Type': 'application/manifest+json; charset=utf-8', 'Cache-Control': 'public, max-age=86400' });
+      res.end(content);
+      return;
+    }
+    if (url.pathname === '/favicon.ico') {
+      const content = await readFile(resolve(process.cwd(), 'favicon.ico'));
+      res.writeHead(200, { 'Content-Type': 'image/x-icon', 'Cache-Control': 'public, max-age=604800' });
+      res.end(content);
+      return;
+    }
+    if (url.pathname === '/favicon.png' || url.pathname === '/favicon-32x32.png') {
+      const content = await readFile(resolve(process.cwd(), 'favicon-32x32.png'));
+      res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=604800' });
+      res.end(content);
+      return;
+    }
+    if (url.pathname === '/apple-touch-icon.png') {
+      const content = await readFile(resolve(process.cwd(), 'apple-touch-icon.png'));
+      res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=604800' });
+      res.end(content);
+      return;
+    }
+    if (url.pathname === '/og-image.png') {
+      const content = await readFile(resolve(process.cwd(), 'og-image.png'));
+      res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=604800' });
+      res.end(content);
+      return;
+    }
+    if (url.pathname === '/colt-logo.svg' || url.pathname === '/coltanedb-logo.svg' || url.pathname === '/favicon.svg') {
+      const filename = url.pathname === '/colt-logo.svg' ? 'colt-logo.svg' : 'coltanedb-logo.svg';
+      const content = await readFile(resolve(process.cwd(), filename), 'utf8');
+      res.writeHead(200, { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Cache-Control': 'public, max-age=604800' });
+      res.end(content);
+      return;
+    }
+    if (url.pathname === '/api/config/firebase') {
+      sendJson(res, 200, {
+        projectId: 'coltanedb',
+        appId: '1:573404384111:web:9add23b082210d273b769a',
+        authDomain: 'coltanedb.firebaseapp.com',
+        storageBucket: 'coltanedb.appspot.com',
+        messagingSenderId: '573404384111',
+      });
+      return;
+    }
+
     // Health check endpoint for container and platform proxies
     if (url.pathname === '/health' || url.pathname === '/healthz' || url.pathname === '/api/health') {
       res.writeHead(200, {
@@ -332,10 +393,29 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    // 9. Web UI & Documentation pages (serve index.html for SPA routing)
+    // 9. Web UI & Documentation pages (serve index.html for SPA routing, return 404 status for unrecognized paths)
     if (req.method === 'GET' || req.method === 'HEAD') {
+      const validSpaRoutes = new Set([
+        '/',
+        '/studio',
+        '/ide',
+        '/builder',
+        '/designer',
+        '/docs',
+        '/table',
+        '/explorer',
+        '/settings',
+        '/privacy',
+        '/terms',
+        '/legal',
+        '/onboarding',
+        '/404',
+      ]);
+
+      const isKnownRoute = validSpaRoutes.has(url.pathname);
+      const statusCode = isKnownRoute ? 200 : 404;
       const html = await readFile(resolve(process.cwd(), 'index.html'), 'utf8');
-      res.writeHead(200, {
+      res.writeHead(statusCode, {
         'Content-Type': 'text/html; charset=utf-8',
         'Content-Length': Buffer.byteLength(html),
         'Access-Control-Allow-Origin': '*',
