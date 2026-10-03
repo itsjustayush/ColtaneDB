@@ -192,6 +192,39 @@ const server = createServer(async (req, res) => {
       sendJson(res, 200, { tenantId: defaultProjectId });
       return;
     }
+    if (url.pathname === '/api/v1/query') {
+      if (req.method !== 'POST') {
+        sendJson(res, 405, { error: 'Method Not Allowed' });
+        return;
+      }
+      const raw = await readBody(req);
+      const body = raw ? (JSON.parse(raw) as { source?: string; parameters?: Record<string, unknown>; tenantId?: string }) : {};
+      const authHeader = req.headers['authorization'] || req.headers['Authorization'] || '';
+      const token = typeof authHeader === 'string' ? authHeader.replace(/^Bearer\s+/i, '') : '';
+
+      let targetTenant = body.tenantId || defaultProjectId;
+      if (token && token.startsWith('clt_live_')) {
+        const authRes = apiSystem.authService.authenticateApiKey(token);
+        if (authRes.valid && authRes.apiKey) {
+          targetTenant = authRes.apiKey.tenantId;
+        }
+      }
+
+      const project = await apiSystem.projectService.getProject(targetTenant);
+      if (!project) {
+        sendJson(res, 404, { error: `Project ${targetTenant} not found.` });
+        return;
+      }
+
+      const execResult = await apiSystem.executionService.execute({
+        tenantId: targetTenant,
+        source: body.source || '',
+        parameters: body.parameters,
+      }, project.limits);
+
+      sendJson(res, execResult.success ? 200 : 400, execResult);
+      return;
+    }
     if (url.pathname.startsWith('/api/v1/')) {
       let body: unknown = undefined;
       if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
@@ -393,6 +426,60 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (url.pathname === '/login' || url.pathname === '/signin' || url.pathname === '/signup') {
+      const content = await readFile(resolve(process.cwd(), 'login.html'), 'utf8');
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Length': Buffer.byteLength(content),
+        'Access-Control-Allow-Origin': '*',
+      });
+      if (req.method === 'HEAD') {
+        res.end();
+      } else {
+        res.end(content);
+      }
+      return;
+    }
+
+    if (
+      url.pathname === '/app' ||
+      url.pathname === '/dashboard' ||
+      url.pathname === '/studio' ||
+      url.pathname === '/console' ||
+      url.pathname === '/ide' ||
+      url.pathname === '/builder' ||
+      url.pathname === '/table' ||
+      url.pathname === '/explorer'
+    ) {
+      const content = await readFile(resolve(process.cwd(), 'app.html'), 'utf8');
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Length': Buffer.byteLength(content),
+        'Access-Control-Allow-Origin': '*',
+      });
+      if (req.method === 'HEAD') {
+        res.end();
+      } else {
+        res.end(content);
+      }
+      return;
+    }
+
+    if (url.pathname === '/docs') {
+      const content = await readFile(resolve(process.cwd(), 'docs.html'), 'utf8');
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Length': Buffer.byteLength(content),
+        'Access-Control-Allow-Origin': '*',
+      });
+      if (req.method === 'HEAD') {
+        res.end();
+      } else {
+        res.end(content);
+      }
+      return;
+    }
+
     if (url.pathname === '/privacy' || url.pathname === '/privacy.html') {
       const content = await readFile(resolve(process.cwd(), 'privacy.html'), 'utf8');
       res.writeHead(200, {
@@ -423,24 +510,9 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    // 9. Web UI & Documentation pages (serve index.html for recognized SPA routes, serve 404.html for unrecognized routes)
+    // 9. Web Landing page (serve index.html for root /, serve 404.html for unrecognized routes)
     if (req.method === 'GET' || req.method === 'HEAD') {
-      const validSpaRoutes = new Set([
-        '/',
-        '/studio',
-        '/ide',
-        '/builder',
-        '/designer',
-        '/docs',
-        '/table',
-        '/explorer',
-        '/settings',
-        '/terms',
-        '/legal',
-        '/onboarding',
-      ]);
-
-      if (validSpaRoutes.has(url.pathname)) {
+      if (url.pathname === '/' || url.pathname === '/index.html' || url.pathname === '/landing') {
         const html = await readFile(resolve(process.cwd(), 'index.html'), 'utf8');
         res.writeHead(200, {
           'Content-Type': 'text/html; charset=utf-8',

@@ -34,10 +34,17 @@ M2 & M2.1 — Tenancy Core and Provider Plugin Framework completed. Multi-provid
   - Mobile Responsiveness (390px Viewport): Input font sizes set to 16px to prevent iOS auto-zoom, all tap targets enlarged to >= 44px, zero horizontal overflow, and a persistent sticky mobile bottom CTA bar (`position: fixed; bottom: 0`).
   - Polish & Firebase Auth: Custom 404 router returning HTTP 404 status codes, thank-you confirmation card with one-click Tenant ID and API key copying, and Firebase Authentication dialog supporting Google OAuth, Email/Password sign-in, and alpha invite codes for project `coltanedb`.
 - Dedicated Standalone Pages & Repository Policies:
+  - `login.html`: Dedicated standalone Sign In / Sign Up page served at `/login`, `/signin`, and `/signup` with Google OAuth, Email/Password auth, and alpha invite token redemption.
+  - `app.html`: Dedicated standalone Coltane Console & Studio application served at `/app`, `/dashboard`, `/studio`, `/table`, `/builder`, featuring visual metrics, Colt query editor with JIT execution, schema designer, and live data table explorer.
+  - `docs.html`: Dedicated standalone documentation page served at `/docs` covering language specification, directives, mutations, and Python SDK integration.
   - `privacy.html`: Dedicated standalone Privacy Policy page served at `/privacy` with matching obsidian aesthetics, comprehensive legal clauses, and lawyer review notes.
   - `404.html`: Dedicated standalone 404 Error page served at `/404` and on any unrecognized route with diagnostic terminal simulator and quick recovery navigation routes.
   - `PRIVACY.md`: Full markdown Privacy Policy committed to repository root outlining data models, TenantGuard isolation, cloud subprocessors, and user data rights.
   - `README.md`: User-focused presentation highlighting capabilities, engine architecture, developer guide for writing `.colt` syntax, client SDK examples, dual licensing, and creator attribution to Ayush Bhattacharya (`info.cometlabs@gmail.com`).
+- Production Execution & Workflow Features:
+  - Working Import & Export: Complete client-side and server-supported import/export workflows for `.colt` query/schema declarations and `.json` data tables.
+  - Secured Landing Experience: Landing page navbar streamlined with clean section navigation and direct console access; public tenant ID leakage completely eliminated.
+  - Live Multi-Model Querying: `/api/v1/query` endpoint for direct raw Colt queries under TenantGuard isolation and multi-backend storage routing.
 - CI Workflow: Corrected `.nvmrc` Node.js version target from `2424` typo to `24`, unblocking GitHub Actions verification runs; added automated Python test step for `packages/python/coltanedb`.
 - Clean credential posture: secrets live solely in `.env.local` (Git-ignored) and provider secret stores; `.env.example` updated with Supabase and Firebase placeholders; no provider credentials in tracked code or client bundles.
 
