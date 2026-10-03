@@ -13,7 +13,10 @@
     "start": "tsx server.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "python:test": "cd packages/python/coltanedb && py -m unittest discover -s tests",
+    "python:build": "cd packages/python/coltanedb && py -m build",
+    "python:check": "cd packages/python/coltanedb && py -m twine check dist/*"
   },
   "devDependencies": {
     "@coltanedb/cli": "workspace:*",
