@@ -45,6 +45,12 @@ M2 & M2.1 — Tenancy Core and Provider Plugin Framework completed. Multi-provid
   - Working Import & Export: Complete client-side and server-supported import/export workflows for `.colt` query/schema declarations and `.json` data tables.
   - Secured Landing Experience: Landing page navbar streamlined with clean section navigation and direct console access; public tenant ID leakage completely eliminated.
   - Live Multi-Model Querying: `/api/v1/query` endpoint for direct raw Colt queries under TenantGuard isolation and multi-backend storage routing.
+- Firebase Backend, Authentication & Firestore Integration:
+  - Full modular Web SDK (`firebase` ^12.19.0) client helper (`firebase.ts` & `src/firebase.ts`) configured for project `coltanedb` and app ID `1:573404384111:web:9add23b082210d273b769a`.
+  - Configured `firebase.json` for Email/Password and Google Sign-In identity providers, alongside `.firebaserc`.
+  - Authored production-grade `firestore.rules` enforcing physical TenantGuard partition isolation (`tenants/{tenantId}/c/{collection}/d/{docId}`) and private user profile security (`users/{userId}`) adhering strictly to `firestore-rules-creation` directives and devil's advocate security testing.
+  - Integrated `onAuthStateChanged` into both `login.html` and `app.html` to monitor session persistence and sync verified tokens with `/api/v1/auth/firebase`.
+  - Added dedicated Firestore document template (`@backend(firestore)`) in the Colt Studio editor and live Firestore collection explorer in `app.html`.
 - CI Workflow: Corrected `.nvmrc` Node.js version target from `2424` typo to `24`, unblocking GitHub Actions verification runs; added automated Python test step for `packages/python/coltanedb`.
 - Clean credential posture: secrets live solely in `.env.local` (Git-ignored) and provider secret stores; `.env.example` updated with Supabase and Firebase placeholders; no provider credentials in tracked code or client bundles.
 
