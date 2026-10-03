@@ -33,6 +33,11 @@ M2 & M2.1 — Tenancy Core and Provider Plugin Framework completed. Multi-provid
   - Legal & Privacy: Comprehensive Privacy Policy and Terms of Service views with explicit lawyer review callouts, alongside an interactive glassmorphic cookie & telemetry consent banner.
   - Mobile Responsiveness (390px Viewport): Input font sizes set to 16px to prevent iOS auto-zoom, all tap targets enlarged to >= 44px, zero horizontal overflow, and a persistent sticky mobile bottom CTA bar (`position: fixed; bottom: 0`).
   - Polish & Firebase Auth: Custom 404 router returning HTTP 404 status codes, thank-you confirmation card with one-click Tenant ID and API key copying, and Firebase Authentication dialog supporting Google OAuth, Email/Password sign-in, and alpha invite codes for project `coltanedb`.
+- Dedicated Standalone Pages & Repository Policies:
+  - `privacy.html`: Dedicated standalone Privacy Policy page served at `/privacy` with matching obsidian aesthetics, comprehensive legal clauses, and lawyer review notes.
+  - `404.html`: Dedicated standalone 404 Error page served at `/404` and on any unrecognized route with diagnostic terminal simulator and quick recovery navigation routes.
+  - `PRIVACY.md`: Full markdown Privacy Policy committed to repository root outlining data models, TenantGuard isolation, cloud subprocessors, and user data rights.
+  - `README.md`: User-focused presentation highlighting capabilities, engine architecture, developer guide for writing `.colt` syntax, client SDK examples, dual licensing, and creator attribution to Ayush Bhattacharya (`info.cometlabs@gmail.com`).
 - CI Workflow: Corrected `.nvmrc` Node.js version target from `2424` typo to `24`, unblocking GitHub Actions verification runs; added automated Python test step for `packages/python/coltanedb`.
 - Clean credential posture: secrets live solely in `.env.local` (Git-ignored) and provider secret stores; `.env.example` updated with Supabase and Firebase placeholders; no provider credentials in tracked code or client bundles.
 

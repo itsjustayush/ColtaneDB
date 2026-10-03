@@ -393,7 +393,37 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    // 9. Web UI & Documentation pages (serve index.html for SPA routing, return 404 status for unrecognized paths)
+    if (url.pathname === '/privacy' || url.pathname === '/privacy.html') {
+      const content = await readFile(resolve(process.cwd(), 'privacy.html'), 'utf8');
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Length': Buffer.byteLength(content),
+        'Access-Control-Allow-Origin': '*',
+      });
+      if (req.method === 'HEAD') {
+        res.end();
+      } else {
+        res.end(content);
+      }
+      return;
+    }
+
+    if (url.pathname === '/404' || url.pathname === '/404.html') {
+      const content = await readFile(resolve(process.cwd(), '404.html'), 'utf8');
+      res.writeHead(404, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Length': Buffer.byteLength(content),
+        'Access-Control-Allow-Origin': '*',
+      });
+      if (req.method === 'HEAD') {
+        res.end();
+      } else {
+        res.end(content);
+      }
+      return;
+    }
+
+    // 9. Web UI & Documentation pages (serve index.html for recognized SPA routes, serve 404.html for unrecognized routes)
     if (req.method === 'GET' || req.method === 'HEAD') {
       const validSpaRoutes = new Set([
         '/',
@@ -405,25 +435,37 @@ const server = createServer(async (req, res) => {
         '/table',
         '/explorer',
         '/settings',
-        '/privacy',
         '/terms',
         '/legal',
         '/onboarding',
-        '/404',
       ]);
 
-      const isKnownRoute = validSpaRoutes.has(url.pathname);
-      const statusCode = isKnownRoute ? 200 : 404;
-      const html = await readFile(resolve(process.cwd(), 'index.html'), 'utf8');
-      res.writeHead(statusCode, {
+      if (validSpaRoutes.has(url.pathname)) {
+        const html = await readFile(resolve(process.cwd(), 'index.html'), 'utf8');
+        res.writeHead(200, {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Content-Length': Buffer.byteLength(html),
+          'Access-Control-Allow-Origin': '*',
+        });
+        if (req.method === 'HEAD') {
+          res.end();
+        } else {
+          res.end(html);
+        }
+        return;
+      }
+
+      // Unrecognized route -> serve dedicated 404.html with status 404
+      const notFoundHtml = await readFile(resolve(process.cwd(), '404.html'), 'utf8');
+      res.writeHead(404, {
         'Content-Type': 'text/html; charset=utf-8',
-        'Content-Length': Buffer.byteLength(html),
+        'Content-Length': Buffer.byteLength(notFoundHtml),
         'Access-Control-Allow-Origin': '*',
       });
       if (req.method === 'HEAD') {
         res.end();
       } else {
-        res.end(html);
+        res.end(notFoundHtml);
       }
       return;
     }
