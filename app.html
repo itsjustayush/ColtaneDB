@@ -517,9 +517,57 @@
       z-index: 300;
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+    </style>
+
+  <!-- Firebase Web SDK Modular (v10) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { 
+      getAuth, 
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import {
+      getFirestore,
+      collection,
+      doc,
+      getDocs,
+      setDoc,
+      deleteDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // Public Firebase Web Client Config for coltanedb
+    const firebaseConfig = {
+      apiKey: "AIzaSyColtaneDBProductionKeyPlaceholder",
+      projectId: "coltanedb",
+      appId: "1:573404384111:web:9add23b082210d273b769a",
+      authDomain: "coltanedb.firebaseapp.com",
+      storageBucket: "coltanedb.firebasestorage.app",
+      messagingSenderId: "573404384111"
+    };
+
+    try {
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+      window._firebaseApp = app;
+      window._firebaseAuth = auth;
+      window._firestoreDb = db;
+
+      // Monitor Auth State
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          console.log("Console active user:", user.email, user.uid);
+          const emailDisplay = document.getElementById('user-email-display');
+          const emailInput = document.getElementById('settings-user-email');
+          if (emailDisplay && user.email) emailDisplay.textContent = user.email;
+          if (emailInput && user.email) emailInput.value = user.email;
+        }
+      });
+    } catch (e) {
+      console.warn("Firebase client init notice in app:", e);
     }
-  </style>
+  </script>
 </head>
 <body>
 
@@ -656,6 +704,7 @@ print(res.data)
                 <option value="define">Template: Define Collection</option>
                 <option value="insert">Template: Insert Record (PUT)</option>
                 <option value="find" selected>Template: Query / Filter (FIND)</option>
+                <option value="firestore">Template: Firebase Firestore Documents</option>
                 <option value="redis">Template: Upstash Redis KV Read</option>
               </select>
             </div>
@@ -753,6 +802,7 @@ print(res.data)
           <div class="collection-item active" data-table="books" onclick="selectCollection('books')">📚 books</div>
           <div class="collection-item" data-table="authors" onclick="selectCollection('authors')">✍️ authors</div>
           <div class="collection-item" data-table="users" onclick="selectCollection('users')">👥 users</div>
+          <div class="collection-item" data-table="firestore_docs" onclick="selectCollection('firestore_docs')">🔥 firestore_docs</div>
           <div class="collection-item" data-table="metrics" onclick="selectCollection('metrics')">📈 metrics</div>
           <div class="collection-item" data-table="inventory" onclick="selectCollection('inventory')">📦 inventory</div>
         </div>
@@ -914,7 +964,13 @@ print(res.data)
       showToast('New live API Key generated!');
     }
 
-    function handleSignOut() {
+    async function handleSignOut() {
+      if (window._firebaseAuth) {
+        try {
+          const { signOut } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+          await signOut(window._firebaseAuth);
+        } catch (_) {}
+      }
       localStorage.removeItem('coltane_session');
       window.location.href = '/login';
     }
@@ -951,6 +1007,23 @@ LIMIT 5`,
   author: "Ayush Bhattacharya",
   rating: 4.95
 }`,
+      firestore: `// Live Firestore Multi-Tenant Document CRUD under TenantGuard
+DEFINE COLLECTION firestore_docs STRICT @backend(firestore) {
+  id: text @key,
+  title: text,
+  content: text,
+  priority: int @default(1)
+}
+
+PUT firestore_docs:doc_alpha_101 {
+  title: "Multi-Model Tenant Isolation",
+  content: "Physical path isolation under tenants/{tenantId}/c/firestore_docs/d/doc_alpha_101",
+  priority: 5
+}
+
+FIND firestore_docs SELECT id, title, content, priority
+WHERE priority >= 1
+LIMIT 5`,
       redis: `// Direct Key-Value cache read via Upstash Redis tier
 DEFINE COLLECTION session_cache STRICT @backend(redis) {
   token: text @key,
@@ -1210,6 +1283,13 @@ LIMIT 1`
           ['m_01', 'lexer_parse', 0.42],
           ['m_02', 'plan_generate', 0.85],
           ['m_03', 'tenant_guard_check', 0.12]
+        ]
+      },
+      firestore_docs: {
+        cols: ['doc_id', 'title', 'tenant_guard', 'storage_tier', 'created_at'],
+        rows: [
+          ['fdoc_alpha_01', 'Multi-Tenant Document', 'ISOLATED: tenants/{tid}/c/firestore_docs/d', 'Firestore NoSQL', '2026-10-03'],
+          ['fdoc_alpha_02', 'OAuth User Profile', 'ISOLATED: users/{userId}', 'Firebase Auth & Store', '2026-10-02']
         ]
       },
       inventory: {

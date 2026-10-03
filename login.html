@@ -351,15 +351,17 @@
       GoogleAuthProvider, 
       signInWithPopup, 
       signInWithEmailAndPassword, 
-      createUserWithEmailAndPassword 
+      createUserWithEmailAndPassword,
+      onAuthStateChanged
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
     // Public Firebase Web Client Config for coltanedb
     const firebaseConfig = {
+      apiKey: "AIzaSyColtaneDBProductionKeyPlaceholder",
       projectId: "coltanedb",
       appId: "1:573404384111:web:9add23b082210d273b769a",
       authDomain: "coltanedb.firebaseapp.com",
-      storageBucket: "coltanedb.appspot.com",
+      storageBucket: "coltanedb.firebasestorage.app",
       messagingSenderId: "573404384111"
     };
 
@@ -370,6 +372,35 @@
       googleProvider = new GoogleAuthProvider();
       window._firebaseAuth = auth;
       window._googleProvider = googleProvider;
+      window._firebaseApp = app;
+
+      // Monitor Authentication State
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          console.log("Firebase user active:", user.uid, user.email);
+          const currentSession = localStorage.getItem('coltane_session');
+          if (!currentSession) {
+            user.getIdToken().then(idToken => {
+              fetch('/api/v1/auth/firebase', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken, email: user.email, displayName: user.displayName })
+              }).then(r => r.json()).then(data => {
+                saveSession({
+                  email: user.email || 'developer@coltanedb.dev',
+                  name: user.displayName || 'Coltane User',
+                  tenantId: data.tenantId || ('tnt_' + user.uid.substring(0, 8)),
+                  apiKey: data.apiKey?.token || ('clt_live_' + user.uid.substring(0, 12)),
+                  provider: 'firebase'
+                });
+                window.location.href = '/app';
+              }).catch(() => {});
+            });
+          }
+        } else {
+          console.log("Firebase user signed out.");
+        }
+      });
     } catch (e) {
       console.warn("Firebase client init notice:", e);
     }
