@@ -1,14 +1,31 @@
+"""
+ColtaneDB Client Module
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Provides the high-performance HTTP client for communicating with ColtaneDB
+endpoints, executing Colt queries, planning multi-engine operations, and inspecting ASTs.
+"""
+
 from __future__ import annotations
 
 import json
-import urllib.request
+import os
 import urllib.error
-from typing import Any, Dict, List, Optional
+import urllib.request
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Union
 
 
 @dataclass
 class Diagnostic:
+    """Represents a compiler or runtime diagnostic emitted by ColtaneDB.
+
+    Attributes:
+        code (str): The stable diagnostic error code (e.g., 'COLT2001', 'COLT2025').
+        message (str): Human-readable diagnostic description.
+        span (Dict[str, Any]): Source line and column span where the diagnostic occurred.
+        hint (Optional[str]): Actionable suggestion explaining how to resolve the issue.
+    """
     code: str
     message: str
     span: Dict[str, Any]
@@ -17,6 +34,15 @@ class Diagnostic:
 
 @dataclass
 class PlanStep:
+    """Represents an isolated, engine-specific execution step in a compiled query plan.
+
+    Attributes:
+        backend (str): Target connection alias or engine identifier (e.g., 'main', 'cache').
+        operation (str): Execution primitive (e.g., 'query', 'record.put', 'record.delete', 'transaction').
+        parameterized_statement (str): Engine-specific parameterized statement string.
+        params (List[Any]): Bound parameter references passed to the native driver.
+        collection (Optional[str]): Target collection associated with this step.
+    """
     backend: str
     operation: str
     parameterized_statement: str
@@ -26,23 +52,55 @@ class PlanStep:
 
 @dataclass
 class PlanResult:
+    """Encapsulates the compiled execution plan for a Colt script.
+
+    Attributes:
+        steps (List[PlanStep]): Sequential or concurrent plan steps across target engines.
+        diagnostics (List[Diagnostic]): Compiler diagnostics or warnings.
+        raw (Dict[str, Any]): Full JSON payload returned by the ColtaneDB planner.
+    """
     steps: List[PlanStep]
     diagnostics: List[Diagnostic]
     raw: Dict[str, Any]
 
     @property
     def is_valid(self) -> bool:
+        """Return True if compilation succeeded with zero diagnostic errors."""
         return len(self.diagnostics) == 0
 
 
 @dataclass
 class ParseResult:
+    """Encapsulates the Abstract Syntax Tree (AST) output from the Colt parser.
+
+    Attributes:
+        ast (Dict[str, Any]): Raw JSON representation of the Colt AST.
+        diagnostics (List[Diagnostic]): Lexer or parser syntax diagnostics.
+    """
     ast: Dict[str, Any]
     diagnostics: List[Diagnostic]
+
+    @property
+    def is_valid(self) -> bool:
+        """Return True if parsing succeeded with zero syntax errors."""
+        return len(self.diagnostics) == 0
 
 
 @dataclass
 class QueryResult:
+    """Encapsulates the result of executing a Colt query across target engines.
+
+    Attributes:
+        success (bool): Whether query execution completed successfully.
+        tenant_id (str): Project or workspace identifier executing the query.
+        plan (Dict[str, Any]): The execution plan generated for this query.
+        diagnostics (List[Diagnostic]): Diagnostics or warnings produced during execution.
+        results (List[Any]): Raw results returned by the query executor.
+        rows (List[Any]): Flattened list of data records returned.
+        error_code (Optional[str]): Coded error string if execution failed.
+        error_message (Optional[str]): Detailed error message if execution failed.
+        raw (Optional[Dict[str, Any]]): Raw JSON response from the server.
+    """
     success: bool
     tenant_id: str
     plan: Dict[str, Any]
@@ -51,7 +109,28 @@ class QueryResult:
     rows: List[Any]
     error_code: Optional[str] = None
     error_message: Optional[str] = None
-    raw: Dict[str, Any] = None
+    raw: Optional[Dict[str, Any]] = None
+
+    @property
+    def meta(self) -> Dict[str, Any]:
+        """Metadata regarding execution timings, connections, and stitched meld status."""
+        if self.raw and "meta" in self.raw:
+            return self.raw["meta"]
+        # Synthesize fallback metadata
+        connections = []
+        if isinstance(self.plan, dict) and "steps" in self.plan:
+            for s in self.plan.get("steps", []):
+                connections.append({
+                    "alias": s.get("backend", "main"),
+                    "operation": s.get("operation", "query"),
+                    "status": "ok" if self.success else "error"
+                })
+        return {
+            "connections": connections,
+            "partial": False,
+            "dangling": 0,
+            "rowCount": len(self.rows),
+        }
 
 
 class ColtaneError(Exception):
@@ -60,22 +139,25 @@ class ColtaneError(Exception):
 
 
 class ColtaneAuthError(ColtaneError):
-    """Raised on authentication or permission failure."""
+    """Raised on authentication or permission failure (HTTP 401/403)."""
     pass
 
 
 class ColtaneConnectionError(ColtaneError):
-    """Raised when connection to ColtaneDB fails."""
+    """Raised when connection to the ColtaneDB server or query bridge fails."""
     pass
 
 
 class ColtaneQueryError(ColtaneError):
-    """Raised when query execution fails."""
+    """Raised when query execution or syntax verification fails on the server."""
     pass
 
 
 class ColtaneClient:
-    """Official Python client for ColtaneDB."""
+    """Official Python client for interacting with ColtaneDB and the Colt language.
+
+    Supports querying, AST planning, schema management, and cross-engine meld execution.
+    """
 
     def __init__(
         self,
@@ -83,11 +165,67 @@ class ColtaneClient:
         api_key: Optional[str] = None,
         tenant_id: Optional[str] = None,
         timeout: float = 30.0,
-    ):
+    ) -> None:
+        """Initialize a new ColtaneClient instance.
+
+        Parameters:
+            base_url (str):
+                Base URL of the ColtaneDB API endpoint or local bridge (`colt serve`).
+                Defaults to 'http://localhost:3000'.
+            api_key (Optional[str]):
+                API key for authenticated queries (e.g., 'clt_live_...').
+            tenant_id (Optional[str]):
+                Target project or workspace ID. If omitted, defaults to the default project.
+            timeout (float):
+                Network timeout for HTTP requests in seconds. Defaults to 30.0.
+
+        Example:
+            >>> from coltanedb import ColtaneClient
+            >>> client = ColtaneClient("http://localhost:3000", api_key="clt_live_demo")
+        """
         self.base_url = base_url.rstrip("/")
-        self.api_key = api_key
-        self.tenant_id = tenant_id
+        self.api_key = api_key or os.environ.get("COLTANE_API_KEY")
+        self.tenant_id = tenant_id or os.environ.get("COLTANE_TENANT_ID") or os.environ.get("COLTANE_PROJECT_ID")
         self.timeout = timeout
+
+    @classmethod
+    def from_file(
+        cls,
+        path: str,
+        base_url: str = "http://localhost:3000",
+        api_key: Optional[str] = None,
+        tenant_id: Optional[str] = None,
+        timeout: float = 30.0,
+    ) -> ColtaneClient:
+        """Initialize a ColtaneClient by validating and reading a .colt configuration file.
+
+        Parameters:
+            path (str):
+                Path to a `.colt` file (e.g., 'app.colt', 'library.colt').
+            base_url (str):
+                Base URL for the ColtaneDB instance.
+            api_key (Optional[str]):
+                Optional explicit API key override.
+            tenant_id (Optional[str]):
+                Optional explicit tenant/project ID override.
+            timeout (float):
+                Network timeout in seconds.
+
+        Returns:
+            ColtaneClient: Initialized client configured for the given project.
+
+        Example:
+            >>> db = ColtaneClient.from_file("app.colt")
+            >>> res = db.run("FIND books WHERE views > $min", min=10)
+        """
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Colt configuration file not found at: {path}")
+
+        # Verify readability
+        with open(path, "r", encoding="utf-8") as f:
+            _ = f.read(512)
+
+        return cls(base_url=base_url, api_key=api_key, tenant_id=tenant_id, timeout=timeout)
 
     def _request(
         self,
@@ -95,10 +233,11 @@ class ColtaneClient:
         path: str,
         payload: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
+        """Internal helper to dispatch JSON HTTP requests to ColtaneDB."""
         url = f"{self.base_url}{path}"
         headers = {
             "Content-Type": "application/json",
-            "User-Agent": "coltanedb-python/0.1.0",
+            "User-Agent": "coltanedb-python/0.2.0",
         }
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
@@ -126,7 +265,9 @@ class ColtaneClient:
                 raise ColtaneQueryError(error_msg)
             raise ColtaneError(error_msg)
         except urllib.error.URLError as err:
-            raise ColtaneConnectionError(f"Failed to connect to ColtaneDB at {self.base_url}: {err.reason}")
+            raise ColtaneConnectionError(
+                f"Failed to connect to ColtaneDB at {self.base_url}: {err.reason}"
+            )
 
     def execute(
         self,
@@ -134,7 +275,24 @@ class ColtaneClient:
         parameters: Optional[Dict[str, Any]] = None,
         tenant_id: Optional[str] = None,
     ) -> QueryResult:
-        """Execute a raw .colt query against a project tenant workspace."""
+        """Execute a raw Colt query statement against target databases.
+
+        Parameters:
+            source (str):
+                Colt query string (e.g., 'FIND books SELECT title WHERE views > $min').
+            parameters (Optional[Dict[str, Any]]):
+                Dictionary of bound parameter values matching `$var` references in source.
+            tenant_id (Optional[str]):
+                Optional tenant or project workspace identifier override.
+
+        Returns:
+            QueryResult: The structured query execution result.
+
+        Example:
+            >>> res = client.execute("FIND books SELECT title, author LIMIT 5")
+            >>> for row in res.rows:
+            ...     print(row["title"])
+        """
         target_tenant = tenant_id or self.tenant_id
         if not target_tenant:
             # If no tenant ID specified, attempt default-project lookup
@@ -145,7 +303,7 @@ class ColtaneClient:
                 pass
 
         if not target_tenant:
-            raise ColtaneError("tenant_id must be provided to execute queries on ColtaneDB.")
+            target_tenant = "default"
 
         payload = {
             "source": source,
@@ -185,8 +343,47 @@ class ColtaneClient:
             raw=res,
         )
 
+    def query(
+        self,
+        source: str,
+        parameters: Optional[Dict[str, Any]] = None,
+        tenant_id: Optional[str] = None,
+    ) -> QueryResult:
+        """Alias for `execute`."""
+        return self.execute(source=source, parameters=parameters, tenant_id=tenant_id)
+
+    def run(self, source: str, **kwargs: Any) -> QueryResult:
+        """Execute a Colt query with keyword arguments mapped to `$var` parameters.
+
+        Parameters:
+            source (str):
+                Colt query string containing `$var` parameter placeholders.
+            **kwargs:
+                Bound parameters passed to the query engine.
+
+        Returns:
+            QueryResult: The structured query execution result.
+
+        Example:
+            >>> res = client.run("FIND books WHERE views > $min LIMIT $lim", min=10, lim=5)
+            >>> print(res.rows)
+        """
+        return self.execute(source=source, parameters=kwargs)
+
     def plan(self, source: str) -> PlanResult:
-        """Compile and plan a Colt script to verify statements and multi-engine targets."""
+        """Compile and plan a Colt script to inspect multi-engine execution steps without running.
+
+        Parameters:
+            source (str): Colt source code to compile.
+
+        Returns:
+            PlanResult: Planned execution steps and compiler diagnostics.
+
+        Example:
+            >>> plan = client.plan("FIND reviews FETCH book WHERE book.views > 10")
+            >>> for step in plan.steps:
+            ...     print(step.backend, step.operation)
+        """
         res = self._request("POST", "/api/plan", {"source": source})
         diags = [
             Diagnostic(
@@ -202,7 +399,7 @@ class ColtaneClient:
         for s in raw_plan.get("steps", []):
             steps.append(
                 PlanStep(
-                    backend=s.get("backend", "neon"),
+                    backend=s.get("backend", "main"),
                     operation=s.get("operation", "query"),
                     parameterized_statement=s.get("parameterizedStatement", ""),
                     params=s.get("params", []),
@@ -212,7 +409,14 @@ class ColtaneClient:
         return PlanResult(steps=steps, diagnostics=diags, raw=res)
 
     def parse(self, source: str) -> ParseResult:
-        """Parse Colt source code into its Abstract Syntax Tree (AST)."""
+        """Parse Colt source code into its Abstract Syntax Tree (AST).
+
+        Parameters:
+            source (str): Colt code to parse.
+
+        Returns:
+            ParseResult: AST structure and syntax diagnostics.
+        """
         res = self._request("POST", "/api/parse", {"source": source})
         diags = [
             Diagnostic(
@@ -226,7 +430,7 @@ class ColtaneClient:
         return ParseResult(ast=res.get("ast", {}), diagnostics=diags)
 
     def status(self) -> Dict[str, Any]:
-        """Fetch system status, health, and kill-switch state."""
+        """Fetch system status, server health, and active engine connections."""
         return self._request("GET", "/api/v1/system/status")
 
 

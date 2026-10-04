@@ -3,7 +3,9 @@ export { parse } from './parser/parser.ts';
 export type {
   Annotation,
   AtomicStatement,
+  ConnectStatement,
   CreateStatement,
+  DefaultConnectionStatement,
   DefineCollectionStatement,
   DeleteStatement,
   Expression,

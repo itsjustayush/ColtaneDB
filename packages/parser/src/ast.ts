@@ -2,11 +2,28 @@ import type { SourceSpan } from './lexer/token.ts';
 
 export interface Program {
   type: 'Program';
+  version?: string;
   statements: Statement[];
   span: SourceSpan;
 }
 
+export interface ConnectStatement {
+  type: 'Connect';
+  alias: string;
+  engine: string;
+  envVar: string;
+  span: SourceSpan;
+}
+
+export interface DefaultConnectionStatement {
+  type: 'DefaultConnection';
+  alias: string;
+  span: SourceSpan;
+}
+
 export type Statement =
+  | ConnectStatement
+  | DefaultConnectionStatement
   | DefineCollectionStatement
   | FindStatement
   | PutStatement

@@ -59,15 +59,26 @@ const keywords = new Set([
   'VECTOR',
   'KEY',
   'UNIQUE',
+  'CONNECT',
+  'AS',
   'DEFAULT',
+  'CONNECTION',
+  'ENV',
+  'MELD',
+  'SYNC',
+  'CONSTRAINT',
+  'REFERENCES',
+  'MODE',
+  'POSTGRES',
+  'SQLITE',
+  'LIBSQL',
+  'D1',
   'INDEX',
   'TTL',
   'STORAGE',
   'TIMESERIES',
   'BACKEND',
   'READONLY',
-  'NEON',
-  'SUPABASE',
   'MONGODB',
   'FIRESTORE',
   'REDIS',
@@ -110,6 +121,8 @@ class Lexer {
         this.skipLineComment();
       } else if (this.startsWith('/*')) {
         this.skipBlockComment();
+      } else if (this.startsWith('#colt')) {
+        this.readPragma();
       } else if (char === '"') {
         this.readString();
       } else if (char === '$') {
@@ -252,6 +265,29 @@ class Lexer {
       return;
     }
     this.advanceText('*/');
+  }
+
+  private readPragma(): void {
+    const start = this.position();
+    this.advanceText('#colt');
+    while (!this.atEnd() && (this.peek() === ' ' || this.peek() === '\t')) {
+      this.advance();
+    }
+    const versionMatch = this.source.slice(this.offset).match(/^\d+(?:\.\d+)?/);
+    let version = '0.2';
+    if (versionMatch) {
+      version = versionMatch[0];
+      this.advanceText(version);
+    }
+    while (!this.atEnd() && this.peek() !== '\n') {
+      this.advance();
+    }
+    this.tokens.push({
+      kind: 'pragma',
+      lexeme: `#colt ${version}`,
+      value: version,
+      span: { start, end: this.position() },
+    });
   }
 
   private readOperatorOrPunctuation(): boolean {

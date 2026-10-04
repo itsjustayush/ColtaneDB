@@ -1,10 +1,10 @@
 # Project Status
 
-Last updated: 2026-10-02
+Last updated: 2026-10-04
 
 ## Current milestone
 
-M2 & M2.1 — Tenancy Core and Provider Plugin Framework completed. Multi-provider adapters implemented with strict tenant isolation. M3 authenticated API execution and M4 web console baseline in active advancement.
+Colt 0.2 & BYOD Engine-Centric Architecture — Tenancy archived to `archive/tenancy`. Engine-centric Bring Your Own Database (BYOD) model implemented with multi-store meld capability, `CONNECT` statements, `colt.toml` support, capability checks, and diagnostic expansion.
 
 ## Built
 
@@ -13,46 +13,31 @@ M2 & M2.1 — Tenancy Core and Provider Plugin Framework completed. Multi-provid
 - CI workflow for install, lint, typecheck, tests, and build.
 - CLI binaries: both `colt` and `coltane` registered and executable (`check`, `fmt`, `plan`, `run`).
 - Dual license established: Apache-2.0 for code ([`LICENSE`](../LICENSE)), Creative Commons Attribution 4.0 International for Colt spec ([`spec/LICENSE`](../spec/LICENSE)).
-- M1 Language Core: Colt v0.1 spec, EBNF grammar, lexer, parser, semantic analyzer, parameterized Postgres planner, conformance suite, and parser fuzz testing.
-- M2 Tenancy Core: `TenantGuard`, `TenantManager`, opaque ID generation (`tnt_...`), in-memory fake adapter, and `NeonAdapter` implementing `ct_<tid>` schema and `SET LOCAL ROLE` isolation.
-- M2.1 Provider Plugin Framework: `ProviderRegistry`, family manifests (`postgres`, `sqlite`, `document`, `kv`, `object`), logical type maps, quota models, and strict D8 within-family spillover boundary enforcement.
-- Multi-Provider Tenant Isolation Adapters:
-  - `MultiBackendStoreAdapter`: Dynamic query routing across target database engines per collection `@backend` placement.
-  - `RedisStoreAdapter`: KV family with strict `t:{tid}:` key prefix isolation, supporting `UpstashRestRedisClient` for native REST execution.
-  - `TursoStoreAdapter`: SQLite family with injected `_tid` row isolation.
-  - `SupabaseStoreAdapter`: Postgres family with strict `ct_<tid>` schema naming and hard guard against direct `public` schema access.
-  - `MongoStoreAdapter`: Document family with mandatory `{ _tid }` document injection and query scoping.
-  - `FirestoreStoreAdapter`: Document family with path-based isolation `tenants/{tid}/c/{collection}/d/{id}` powered by `firebase-admin` (v14.5) with discrete, JSON, base64, and file-path credential loading.
-  - `FirebaseAdminAuthClient`: Direct integration with `firebase-admin/auth` verifying Google OAuth and Firebase ID tokens (`/api/v1/auth/firebase` and `Bearer` token verification).
-- M3 API Layer: Hono-based API (`packages/api`) with API key generation/hashing (`colt_...`), Firebase Auth integration, project management, rate limiter, limits profiles, global kill-switch, and query executor passing queries through `TenantGuard` and `MultiBackendStoreAdapter`.
-- Official Python SDK (`coltanedb`): Scaffolded at `packages/python/coltanedb` with `pyproject.toml` (setuptools build backend, SPDX `Apache-2.0`), bundled `LICENSE`, comprehensive `README.md`, `ColtaneClient` supporting HTTP query execution (`execute`, `plan`, `parse`, `status`), fluent query and schema builders, and unittest suite passing in CI. Built distributions `coltanedb-0.1.0-py3-none-any.whl` and `coltanedb-0.1.0.tar.gz` verified with `twine check` (PASSED). Added automated PyPI publishing workflow [`.github/workflows/publish-pypi.yml`](../.github/workflows/publish-pypi.yml) with PyPI Trusted Publishing (OIDC), root npm scripts (`python:test`, `python:build`, `python:check`), and complete step-by-step developer guide [`packages/python/coltanedb/PUBLISHING.md`](../packages/python/coltanedb/PUBLISHING.md).
-- Production & Vercel Multi-Service Readiness: Configured `vercel.json` with multi-service architecture (`app` with `server.ts` entrypoint and internal service binding to `python` worker). Added `pnpm.overrides` for `"jwks-rsa>jose": "4.15.9"` in `package.json` and `pnpm-lock.yaml` resolving `ERR_REQUIRE_ESM` when `firebase-admin` loads `jwks-rsa` in Vercel Serverless Function runtime; `.vercelignore` isolates secret boundaries.
-- Production Launch & HydraDB-Inspired Design System: Implemented complete 20-item launch checklist upgrade in `index.html` and `server.ts`:
-  - Visual Aesthetics: Dark obsidian aesthetic inspired by HydraDB with interactive 3D kinetic constellation canvas (`<canvas id="kinetic-canvas">`), custom official vector logos for the Colt language (`colt-logo.svg`) and ColtaneDB platform (`coltanedb-logo.svg`), and mouse-tracking spotlight Bento grid architecture.
-  - SEO & Discoverability: Dynamic unique page titles (<60 chars), meta descriptions (120-155 chars), full Open Graph and Twitter Card tags (`og-image.png`), complete favicon suite (`favicon.ico`, `favicon-32x32.png`, `apple-touch-icon.png`, `site.webmanifest`), `robots.txt`, and `sitemap.xml`.
-  - Legal & Privacy: Comprehensive Privacy Policy and Terms of Service views with explicit lawyer review callouts, alongside an interactive glassmorphic cookie & telemetry consent banner.
-  - Mobile Responsiveness (390px Viewport): Input font sizes set to 16px to prevent iOS auto-zoom, all tap targets enlarged to >= 44px, zero horizontal overflow, and a persistent sticky mobile bottom CTA bar (`position: fixed; bottom: 0`).
-  - Polish & Firebase Auth: Custom 404 router returning HTTP 404 status codes, thank-you confirmation card with one-click Tenant ID and API key copying, and Firebase Authentication dialog supporting Google OAuth, Email/Password sign-in, and alpha invite codes for project `coltanedb`.
+- **Colt 0.2 Language Core & Specification**:
+  - Spec updated to Colt v0.2 ([`spec/SPEC.md`](../spec/SPEC.md), [`spec/CHANGELOG.md`](../spec/CHANGELOG.md), [`spec/grammar.ebnf`](../spec/grammar.ebnf)).
+  - `#colt 0.2` pragma support with automatic migration hints for legacy v0.1 files.
+  - Explicit infrastructure statements: `CONNECT <alias> AS <engine>(env("VAR"))` and `DEFAULT CONNECTION <alias>`.
+  - Externalized project connection loading via `colt.toml` (`[connections.<alias>] engine, url_env`).
+  - `@backend(alias)` bound to connection aliases rather than hardcoded provider brand names.
+  - Secret safety: `env("VAR")` strictly enforced; literal credentialed URLs rejected with `COLT2023`.
+  - Engine capability validation matrix (`postgres`, `redis`, `mongodb`, `sqlite`, `libsql`, `firestore`, `d1`) enforcing feature constraints (e.g. rejecting HNSW on Redis via `COLT2026`).
+  - Single-connection `ATOMIC` validation (`COLT2025`).
+  - Cross-connection `link<T>` melds (non-transactional stitched query lookups).
+  - Reserved `DEFINE MELD ... LINK | SYNC | CONSTRAINT` grammar under `COLT2003`.
+  - Comprehensive language documentation written to [`DOCUMENTATION.md`](../DOCUMENTATION.md).
+- **Archival of Tenancy (Plan Change)**:
+  - Tenancy, partitioning, quotas, and spillover concepts cleanly preserved on git branch `archive/tenancy` and tagged `archive/tenancy-v0.1`.
+  - Production `.env.local` kept completely intact without modification.
+- Multi-Provider Adapters & Isolation (Preserved):
+  - `MultiBackendStoreAdapter`, `RedisStoreAdapter`, `TursoStoreAdapter`, `SupabaseStoreAdapter`, `MongoStoreAdapter`, `FirestoreStoreAdapter`.
+  - `FirebaseAdminAuthClient` verifying Google OAuth and Firebase ID tokens.
+- M3 API Layer: Hono-based API (`packages/api`) with API key generation/hashing (`colt_...`), Firebase Auth integration, project management, rate limiter, limits profiles, and query executor.
+- Official Python SDK (`coltanedb`): Version bumped to `0.2.0` (matching Colt 0.2). Added `coltanedb.guide(file=True/False)` exporting the official `COLT_GUIDE.md` language reference or printing clean text, `coltanedb.author()` displaying clickable terminal hyperlinks (OSC 8), `client.run(...)`, `client.from_file(...)`, and `QueryResult.meta`. Built distribution packages `coltanedb-0.2.0-py3-none-any.whl` and `coltanedb-0.2.0.tar.gz` verified with `twine check` (PASSED). Automated PyPI publishing workflow [`.github/workflows/publish-pypi.yml`](../.github/workflows/publish-pypi.yml) configured to execute on each `push` (running SDK test suite, build, twine check, and `skip-existing` publication via PyPI Trusted Publishing).
 - Dedicated Standalone Pages & Repository Policies:
-  - `login.html`: Dedicated standalone Sign In / Sign Up page served at `/login`, `/signin`, and `/signup` with Google OAuth, Email/Password auth, and alpha invite token redemption.
-  - `app.html`: Dedicated standalone Coltane Console & Studio application served at `/app`, `/dashboard`, `/studio`, `/table`, `/builder`, featuring visual metrics, Colt query editor with JIT execution, schema designer, and live data table explorer.
-  - `docs.html`: Dedicated standalone documentation page served at `/docs` covering language specification, directives, mutations, and Python SDK integration.
-  - `privacy.html`: Dedicated standalone Privacy Policy page served at `/privacy` with matching obsidian aesthetics, comprehensive legal clauses, and lawyer review notes.
-  - `404.html`: Dedicated standalone 404 Error page served at `/404` and on any unrecognized route with diagnostic terminal simulator and quick recovery navigation routes.
-  - `PRIVACY.md`: Full markdown Privacy Policy committed to repository root outlining data models, TenantGuard isolation, cloud subprocessors, and user data rights.
-  - `README.md`: User-focused presentation highlighting capabilities, engine architecture, developer guide for writing `.colt` syntax, client SDK examples, dual licensing, and creator attribution to Ayush Bhattacharya (`info.cometlabs@gmail.com`).
-- Production Execution & Workflow Features:
-  - Working Import & Export: Complete client-side and server-supported import/export workflows for `.colt` query/schema declarations and `.json` data tables.
-  - Secured Landing Experience: Landing page navbar streamlined with clean section navigation and direct console access; public tenant ID leakage completely eliminated.
-  - Live Multi-Model Querying: `/api/v1/query` endpoint for direct raw Colt queries under TenantGuard isolation and multi-backend storage routing.
-- Firebase Backend, Authentication & Firestore Integration:
-  - Full modular Web SDK (`firebase` ^12.19.0) client helper (`firebase.ts` & `src/firebase.ts`) configured for project `coltanedb` and app ID `1:573404384111:web:9add23b082210d273b769a`.
-  - Configured `firebase.json` for Email/Password and Google Sign-In identity providers, alongside `.firebaserc`.
-  - Authored production-grade `firestore.rules` enforcing physical TenantGuard partition isolation (`tenants/{tenantId}/c/{collection}/d/{docId}`) and private user profile security (`users/{userId}`) adhering strictly to `firestore-rules-creation` directives and devil's advocate security testing.
-  - Integrated `onAuthStateChanged` into both `login.html` and `app.html` to monitor session persistence and sync verified tokens with `/api/v1/auth/firebase`.
-  - Added dedicated Firestore document template (`@backend(firestore)`) in the Colt Studio editor and live Firestore collection explorer in `app.html`.
-- CI Workflow: Corrected `.nvmrc` Node.js version target from `2424` typo to `24`, unblocking GitHub Actions verification runs; added automated Python test step for `packages/python/coltanedb`.
-- Clean credential posture: secrets live solely in `.env.local` (Git-ignored) and provider secret stores; `.env.example` updated with Supabase and Firebase placeholders; no provider credentials in tracked code or client bundles.
+  - Overhauled [`README.md`](../README.md) and [`DOCUMENTATION.md`](../DOCUMENTATION.md) fully aligned with "The Colt Language Reference" specification: 3-layer Meld Model (`Connections`, `Collections`, `Melds`), 3 kinds of melds (`LINK`, `SYNC`, `CONSTRAINT`), 4-way paradigm comparison matrix (SQL vs MongoDB vs Redis vs Colt), engines matrix, consistency guarantees, security model, and tooling.
+  - `index.html`, `login.html`, `app.html`, `docs.html`, `privacy.html`, `404.html`, `PRIVACY.md`.
+- Conformance & Diagnostic Coverage:
+  - Added new conformance test suites covering Colt 0.2 multi-store meld, capability checks, connection aliases, and diagnostics (`COLT2021`–`COLT2027`).
 
 ## Run and test
 
@@ -64,24 +49,19 @@ corepack pnpm test
 corepack pnpm build
 ```
 
-Current test suite: **157 tests passing across 15 test files** (adapters, provider-plugin, compiler, parser, conformance, fuzz, lexer, tenant-guard, tenant-manager, tenant-context, api, firebase, cross-tenant-leak, m4-console, foundation).
-
-## Not yet verified / blocked
-
-- Real provider live connection tests for Turso, MongoDB Atlas, and Firestore require adapter contract test suites before enabling live writes.
-- Upstash QStash-driven outbox and reconciliation jobs (M5) remain to be implemented.
-- Provider capacity ledger (`docs/CAPACITY.md`) requires ongoing updates with dated capacity verifications.
+Current test suite: **167 tests passing across 15 test files** (conformance, compiler, parser, lexer, fuzz, adapters, provider-plugin, tenant-guard, tenant-manager, tenant-context, api, firebase, cross-tenant-leak, m4-console, foundation).
 
 ## Decisions
 
-- Product: ColtaneDB. Language and CLI: Colt / `colt` (with `coltane` binary alias). Extension: `.colt`. Diagnostics: `COLT####`.
-- Dual license: Apache-2.0 for code, CC-BY-4.0 for language specification.
-- Single reference parser in TypeScript (`packages/parser`, `packages/compiler`) used across CLI, server, and web IDE; Python SDK queries server endpoints for execution.
-- Turso accepted into SQLite family for v1.0 (M6.1); BYOD accepted for v1.0 (M12.1).
-- Supabase project verified as dedicated new project; SupabaseStoreAdapter enforces `ct_<tid>` isolation.
-- Strict D8 family boundary: In-family spillover only (Neon ↔ Supabase for Postgres; Turso ↔ D1 for SQLite); cross-family spillover is forbidden automatically.
+- **Product & Language**: Product is ColtaneDB; language and CLI are Colt / `colt` (with `coltane` binary alias). Source files use `.colt`.
+- **Tenancy Archival**: Multi-tenant partitioning and quota spillover archived to branch `archive/tenancy` and tag `archive/tenancy-v0.1`.
+- **BYOD Standard**: Engine-centric architecture (`postgres`, `redis`, `mongodb`, `sqlite`, `libsql`, `firestore`, `d1`). Provider names (Neon, Supabase, Upstash) are optional configuration presets only.
+- **Minimal Footprint**: Colt keeps a minimal, respectful footprint (`colt` schema in Postgres, `colt:` prefix in Redis, `colt_` prefix in Document/SQLite) and never touches user objects outside this namespace.
+- **Secrets Policy**: Zero credentials in `.colt` files or committed config; `env("VAR")` is the sole connection string mechanism.
+- **Atomic Transactions**: `ATOMIC` blocks are strictly single-connection only.
+- **Cross-Connection Links**: Inter-backend links are classified as Melds (stitched lookups, non-transactional).
 
 ## Exact next step
 
-Implement M5 Upstash QStash outbox sync and reconciliation, followed by M4 UI Stage 0 component architecture while maintaining strict isolation gates.
+Advance runtime query execution to support live asynchronous parallel driver execution and memory stitching for Colt 0.2 multi-store meld queries.
 

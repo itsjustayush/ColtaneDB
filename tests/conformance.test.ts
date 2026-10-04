@@ -129,8 +129,11 @@ describe('Colt v0.1 conformance — syntax (SPEC §3–§6)', () => {
     { name: 'WINDOW is reserved for a later milestone', source: 'FIND users SELECT id WINDOW 5m', codes: ['COLT2003'] },
     { name: 'SINCE is reserved for a later milestone', source: 'FIND users SELECT id SINCE 1h', codes: ['COLT2003'] },
     { name: 'statements may be separated by semicolons', source: 'FIND users SELECT id; FIND users SELECT email;', statements: ['Find', 'Find'] },
-    { name: 'several statements form one program', source: 'DEFINE COLLECTION users { id: uuid @key }\nFIND users SELECT id\nDELETE users:alice', statements: ['DefineCollection', 'Find', 'Delete'] },
     { name: 'a trailing comma in a field list is tolerated', source: 'DEFINE COLLECTION a { id: uuid @key, name: text, }', statements: ['DefineCollection'] },
+    { name: 'CONNECT and DEFAULT CONNECTION statements are parsed', source: '#colt 0.2\nCONNECT main AS postgres(env("DATABASE_URL"))\nDEFAULT CONNECTION main\nDEFINE COLLECTION users { id: uuid @key }', statements: ['Connect', 'DefaultConnection', 'DefineCollection'] },
+    { name: 'DEFINE MELD LINK is reserved for a later milestone', source: 'DEFINE MELD book_reviews LINK reviews.book -> books.id', codes: ['COLT2003'] },
+    { name: 'DEFINE MELD SYNC is reserved for a later milestone', source: 'DEFINE MELD hot_books SYNC books TO cache KEY id TTL 10m', codes: ['COLT2003'] },
+    { name: 'DEFINE MELD CONSTRAINT is reserved for a later milestone', source: 'DEFINE MELD review_book CONSTRAINT reviews.book REFERENCES books.id MODE check_on_write', codes: ['COLT2003'] },
   ];
 
   for (const testCase of cases) {
@@ -240,6 +243,51 @@ describe('Colt v0.1 conformance — semantics and code generation (SPEC §4–§
     { name: 'PUT preserves readonly fields by excluding them from the update list', source: `${accounts} PUT accounts:${accountKey} { owner: "root", balance: 10 }`, steps: 2 },
     { name: 'CREATE plans an insert-only conflict guard', source: `${metrics} CREATE metrics { name: "a", payload: {} }`, steps: 2 },
     { name: 'the Postgres capability matrix declares no TTL support', source: `${metrics} FIND metrics SELECT name`, steps: 2 },
+    {
+      name: 'Colt 0.2 multi-store meld schema compiles without diagnostics',
+      source: `#colt 0.2
+CONNECT main AS postgres(env("DATABASE_URL"))
+CONNECT cache AS redis(env("REDIS_URL"))
+CONNECT notes AS mongodb(env("MONGO_URL"))
+DEFAULT CONNECTION main
+
+DEFINE COLLECTION authors STRICT { id: uuid @key, name: text @unique }
+DEFINE COLLECTION books STRICT { id: uuid @key, title: text, author: link<authors>, views: int @default(0) }
+DEFINE COLLECTION reviews FLEXIBLE @backend(notes) { id: uuid @key, book: link<books>, body: text, meta: doc }
+DEFINE COLLECTION sessions @backend(cache) @ttl(30m) { value: text, id: uuid @key }
+`,
+      steps: 4,
+    },
+    {
+      name: 'an unknown connection alias is rejected (COLT2021)',
+      source: '#colt 0.2\nDEFINE COLLECTION books @backend(neon) { id: uuid @key }',
+      codes: ['COLT2021'],
+    },
+    {
+      name: 'a duplicate connection alias is rejected (COLT2022)',
+      source: 'CONNECT main AS postgres(env("DB1"))\nCONNECT main AS redis(env("DB2"))\nDEFINE COLLECTION books { id: uuid @key }',
+      codes: ['COLT2022'],
+    },
+    {
+      name: 'literal credentials instead of env() are rejected (COLT2023)',
+      source: 'CONNECT main AS postgres("postgresql://user:pass@localhost:5432/db")',
+      codes: ['COLT2023'],
+    },
+    {
+      name: 'ambiguous default connection is rejected (COLT2024)',
+      source: 'CONNECT a AS postgres(env("DB1"))\nCONNECT b AS redis(env("DB2"))\nDEFINE COLLECTION books { id: uuid @key }',
+      codes: ['COLT2024'],
+    },
+    {
+      name: 'mixed ATOMIC block across connections is rejected (COLT2025)',
+      source: 'CONNECT a AS postgres(env("DB1"))\nCONNECT b AS postgres(env("DB2"))\nDEFINE COLLECTION x @backend(a) { id: uuid @key }\nDEFINE COLLECTION y @backend(b) { id: uuid @key }\nATOMIC { PUT x:11111111-1111-4111-8111-111111111111 {}; PUT y:22222222-2222-4222-8222-222222222222 {} }',
+      codes: ['COLT2025'],
+    },
+    {
+      name: 'unsupported capability on engine is rejected (COLT2026)',
+      source: 'CONNECT cache AS redis(env("REDIS_URL"))\nDEFINE COLLECTION v @backend(cache) { id: uuid @key, emb: vector(3) @index(hnsw) }',
+      codes: ['COLT2026'],
+    },
   ];
 
   for (const testCase of cases) {

@@ -9,7 +9,17 @@ import type {
 } from '@coltanedb/parser';
 import { parse } from '@coltanedb/parser';
 import { generateStatement, backendFor } from './postgres.ts';
-import type { Catalog, CompileResult, CompilerDiagnostic, CollectionModel, ExecutionPlan } from './types.ts';
+import { parseColtToml } from './config.ts';
+import type {
+  Catalog,
+  CompileOptions,
+  CompileResult,
+  CompilerDiagnostic,
+  CollectionModel,
+  ConnectionModel,
+  EngineType,
+  ExecutionPlan,
+} from './types.ts';
 
 const knownAnnotations = new Set([
   'key', 'unique', 'default', 'index', 'ttl', 'storage', 'timeseries', 'backend', 'readonly',
@@ -50,6 +60,29 @@ function validateAnnotations(model: CollectionModel, diagnostics: CompilerDiagno
         diagnostic(diagnostics, 'COLT2009', `Duplicate annotation @${annotation.name}.`, annotation.span);
       }
       annotationNames.add(annotation.name);
+
+      if (annotation.name === 'index') {
+        const isHnsw = annotation.args.some((arg) => {
+          if (arg.type === 'FieldPath' && arg.root.toLowerCase() === 'hnsw') return true;
+          if (
+            arg.type === 'NamedArgument' &&
+            arg.name.toLowerCase() === 'type' &&
+            arg.value.type === 'FieldPath' &&
+            arg.value.root.toLowerCase() === 'hnsw'
+          ) {
+            return true;
+          }
+          return false;
+        });
+        if (isHnsw && model.engine === 'redis') {
+          diagnostic(
+            diagnostics,
+            'COLT2026',
+            `HNSW indexes are not supported on redis connection '${model.backend}'`,
+            annotation.span,
+          );
+        }
+      }
     }
     if (field.valueType.kind === 'vector' && (!field.valueType.dimension || field.valueType.dimension < 1)) {
       diagnostic(diagnostics, 'COLT2010', 'Vector dimensions must be a positive integer.', field.valueType.span);
@@ -289,7 +322,7 @@ function validateWrite(
 }
 
 function validateOperation(
-  statement: Exclude<Statement, { type: 'DefineCollection' | 'Atomic' }>,
+  statement: Exclude<Statement, { type: 'DefineCollection' | 'Atomic' | 'Connect' | 'DefaultConnection' }>,
   model: CollectionModel,
   catalog: Catalog,
   diagnostics: CompilerDiagnostic[],
@@ -304,12 +337,14 @@ function validateOperation(
     validateWrite(statement, model, catalog, diagnostics);
     return;
   }
-  if (statement.target.kind === 'record') {
-    validateRecordId(statement.target.id, model, diagnostics);
-  } else {
-    validateExpression(statement.target.expression, model, catalog, diagnostics);
-    if (constantValue(statement.target.expression) === true) {
-      diagnostic(diagnostics, 'COLT2005', 'DELETE WHERE cannot be a constant expression that evaluates to true.', statement.target.expression.span);
+  if (statement.type === 'Delete') {
+    if (statement.target.kind === 'record') {
+      validateRecordId(statement.target.id, model, diagnostics);
+    } else {
+      validateExpression(statement.target.expression, model, catalog, diagnostics);
+      if (constantValue(statement.target.expression) === true) {
+        diagnostic(diagnostics, 'COLT2005', 'DELETE WHERE cannot be a constant expression that evaluates to true.', statement.target.expression.span);
+      }
     }
   }
 }
@@ -352,12 +387,29 @@ function validateAtomic(statement: AtomicStatement, catalog: Catalog, diagnostic
   }
   const resolved = models as CollectionModel[];
   const first = resolved[0];
-  if (resolved.some((model) => model.backend !== first.backend)) {
-    diagnostic(diagnostics, 'COLT2016', 'ATOMIC cannot span multiple primary backends.', statement.span);
+  const differing = resolved.find((model) => model.backend !== first.backend);
+  if (differing) {
+    diagnostic(
+      diagnostics,
+      'COLT2025',
+      `ATOMIC block spans connections '${first.backend}' and '${differing.backend}'`,
+      statement.span,
+    );
+    diagnostic(
+      diagnostics,
+      'COLT2016',
+      'ATOMIC cannot span multiple primary backends.',
+      statement.span,
+    );
     return undefined;
   }
-  if (first.backend !== 'neon' && first.backend !== 'supabase') {
-    diagnostic(diagnostics, 'COLT2001', `ATOMIC transactions are not supported on ${first.backend}.`, statement.span);
+  if (first.engine === 'redis') {
+    diagnostic(
+      diagnostics,
+      'COLT2001',
+      `ATOMIC transactions are not supported on redis connection '${first.backend}'.`,
+      statement.span,
+    );
     return undefined;
   }
   for (const child of statement.statements) {
@@ -375,25 +427,158 @@ function compileAtomic(statement: AtomicStatement, catalog: Catalog, model: Coll
   return { backend: model.backend, operation: 'transaction' as const, collection: model.name, substeps, span: statement.span };
 }
 
-export function compile(source: string, initialCatalog: ReadonlyMap<string, CollectionModel> = new Map()): CompileResult {
+export function compile(
+  source: string,
+  initialCatalog: ReadonlyMap<string, CollectionModel> = new Map(),
+  options?: CompileOptions,
+): CompileResult {
   const parsed = parse(source);
   const diagnostics: CompilerDiagnostic[] = parsed.diagnostics.map(({ code, message, span }) => ({ code, message, span }));
   const catalog: Catalog = new Map(initialCatalog);
   const steps: ExecutionPlan['steps'] = [];
 
+  const allowedEngines = new Set(['postgres', 'redis', 'mongodb', 'sqlite', 'libsql', 'firestore', 'd1']);
+  const connections = new Map<string, ConnectionModel>();
+
+  // 1. Seed connections from options
+  if (options?.connections) {
+    for (const conn of options.connections) {
+      connections.set(conn.alias, conn);
+    }
+  }
+  if (options?.tomlConfig) {
+    const tomlConns = parseColtToml(options.tomlConfig);
+    for (const conn of tomlConns) {
+      if (!connections.has(conn.alias)) {
+        connections.set(conn.alias, conn);
+      }
+    }
+  }
+
+  const isV02 = parsed.program.version === '0.2';
+  const hasConnectStatements = parsed.program.statements.some((s) => s.type === 'Connect');
+
+  // If not v0.2 and no CONNECT statements, provide legacy v0.1 neon/supabase presets
+  if (!isV02 && !hasConnectStatements && connections.size === 0) {
+    connections.set('neon', { alias: 'neon', engine: 'postgres' });
+    connections.set('supabase', { alias: 'supabase', engine: 'postgres' });
+  }
+
+  // 2. Scan statements for CONNECT and DEFAULT CONNECTION
+  let declaredDefaultAlias = options?.defaultConnection;
+
+  for (const stmt of parsed.program.statements) {
+    if (stmt.type === 'Connect') {
+      if (!allowedEngines.has(stmt.engine)) {
+        diagnostic(
+          diagnostics,
+          'COLT2027',
+          `Unknown engine '${stmt.engine}'. Allowed engines are: postgres, redis, mongodb, sqlite, libsql, firestore, d1.`,
+          stmt.span,
+        );
+      }
+      if (connections.has(stmt.alias)) {
+        diagnostic(diagnostics, 'COLT2022', `connection '${stmt.alias}' is declared twice`, stmt.span);
+      } else {
+        connections.set(stmt.alias, {
+          alias: stmt.alias,
+          engine: stmt.engine as EngineType,
+          envVar: stmt.envVar,
+          span: stmt.span,
+        });
+      }
+    } else if (stmt.type === 'DefaultConnection') {
+      declaredDefaultAlias = stmt.alias;
+    }
+  }
+
+  // Validate declared default connection if specified
+  if (declaredDefaultAlias && !connections.has(declaredDefaultAlias)) {
+    const defaultStmt = parsed.program.statements.find((s) => s.type === 'DefaultConnection');
+    diagnostic(
+      diagnostics,
+      'COLT2021',
+      `unknown connection '${declaredDefaultAlias}'. Declare it with CONNECT ${declaredDefaultAlias} AS ...`,
+      defaultStmt?.span ?? parsed.program.span,
+    );
+  }
+
+  // Exactly one connection declared = implicit default
+  const effectiveDefault = declaredDefaultAlias ?? (connections.size === 1 ? Array.from(connections.keys())[0] : undefined);
+
   for (const statement of parsed.program.statements) {
+    if (statement.type === 'Connect' || statement.type === 'DefaultConnection') {
+      continue;
+    }
+
     if (statement.type === 'DefineCollection') {
       const backendAnnotation = statement.annotations.find((annotation) => annotation.name === 'backend');
-      const backend = backendFor(statement);
-      if (backendAnnotation && !backend) {
-        diagnostic(diagnostics, 'COLT2001', 'M1 Postgres code generation supports only @backend(neon) and @backend(supabase).', backendAnnotation.span);
-        continue;
+      const declaredBackend = backendFor(statement);
+      let targetAlias: string | undefined;
+
+      if (backendAnnotation) {
+        if (!declaredBackend) {
+          diagnostic(diagnostics, 'COLT1106', 'Malformed @backend annotation.', backendAnnotation.span);
+          continue;
+        }
+        if (!connections.has(declaredBackend)) {
+          if (declaredBackend === 'neon' || declaredBackend === 'supabase') {
+            diagnostic(
+              diagnostics,
+              'COLT2021',
+              `unknown connection '${declaredBackend}'. Declare it with CONNECT ${declaredBackend} AS postgres(env("DATABASE_URL"))`,
+              backendAnnotation.span,
+              'In Colt 0.2, @backend requires a declared connection alias instead of a provider name.',
+            );
+          } else {
+            diagnostic(
+              diagnostics,
+              'COLT2021',
+              `unknown connection '${declaredBackend}'. Declare it with CONNECT ${declaredBackend} AS <engine>(env("..."))`,
+              backendAnnotation.span,
+              'In Colt 0.2, @backend requires a declared connection alias instead of a provider name.',
+            );
+            diagnostic(
+              diagnostics,
+              'COLT2001',
+              `unsupported backend '${declaredBackend}'.`,
+              backendAnnotation.span,
+            );
+          }
+          continue;
+        }
+        targetAlias = declaredBackend;
+      } else {
+        if (effectiveDefault && connections.has(effectiveDefault)) {
+          targetAlias = effectiveDefault;
+        } else if (connections.size > 1) {
+          if (!isV02 && !hasConnectStatements && connections.has('neon')) {
+            targetAlias = 'neon';
+          } else {
+            diagnostic(
+              diagnostics,
+              'COLT2024',
+              `${connections.size} connections declared and no default. Add DEFAULT CONNECTION or @backend(...)`,
+              statement.span,
+            );
+            continue;
+          }
+        } else if (connections.size === 1) {
+          targetAlias = Array.from(connections.keys())[0];
+        } else {
+          targetAlias = 'neon';
+          connections.set('neon', { alias: 'neon', engine: 'postgres' });
+        }
       }
+
       if (catalog.has(statement.name)) {
         diagnostic(diagnostics, 'COLT2006', `Collection ${statement.name} is already defined.`, statement.span);
         continue;
       }
-      const model: CollectionModel = { name: statement.name, backend: backend ?? 'neon', statement };
+
+      const connection = connections.get(targetAlias);
+      const engine: EngineType = connection?.engine ?? 'postgres';
+      const model: CollectionModel = { name: statement.name, backend: targetAlias, engine, statement };
       const diagnosticCount = diagnostics.length;
       validateAnnotations(model, diagnostics);
       if (diagnostics.length !== diagnosticCount) continue;

@@ -10,6 +10,7 @@ export type TokenKind =
   | 'parameter'
   | 'operator'
   | 'punctuation'
+  | 'pragma'
   | 'eof';
 
 export interface SourcePosition {

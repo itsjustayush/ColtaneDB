@@ -1,7 +1,9 @@
 import type {
   Annotation,
   AtomicStatement,
+  ConnectStatement,
   CreateStatement,
+  DefaultConnectionStatement,
   DefineCollectionStatement,
   DeleteStatement,
   Expression,
@@ -18,9 +20,9 @@ import type {
 import { lex } from '../lexer/lexer.ts';
 import type { ColtDiagnostic, ColtToken, LexResult, SourceSpan } from '../lexer/token.ts';
 
-const reservedStatements = new Set(['LIVE', 'SET', 'GET', 'RELATE']);
+const reservedStatements = new Set(['LIVE', 'SET', 'GET', 'RELATE', 'MELD']);
 const reservedClauses = new Set(['FETCH', 'NEAREST', 'SINCE', 'WINDOW']);
-const statementKeywords = new Set(['DEFINE', 'FIND', 'PUT', 'CREATE', 'DELETE', 'ATOMIC']);
+const statementKeywords = new Set(['DEFINE', 'FIND', 'PUT', 'CREATE', 'DELETE', 'ATOMIC', 'CONNECT', 'DEFAULT']);
 const precedence = new Map<string, number>([
   ['OR', 1],
   ['AND', 2],
@@ -60,8 +62,13 @@ class Parser {
   run(): { program: Program; diagnostics: ColtDiagnostic[] } {
     const statements: Statement[] = [];
     const start = this.peek().span.start;
+    let version: string | undefined;
 
     while (!this.check('eof')) {
+      if (this.check('pragma')) {
+        version = this.advance().value;
+        continue;
+      }
       const previous = this.current;
       try {
         statements.push(this.statement());
@@ -82,13 +89,25 @@ class Parser {
 
     const eof = this.peek();
     return {
-      program: { type: 'Program', statements, span: { start, end: eof.span.end } },
+      program: { type: 'Program', version, statements, span: { start, end: eof.span.end } },
       diagnostics: this.diagnostics,
     };
   }
 
   private statement(): Statement {
-    if (this.checkValue('DEFINE')) return this.defineCollection();
+    if (this.checkValue('CONNECT')) return this.connectStatement();
+    if (this.checkValue('DEFAULT')) return this.defaultConnectionStatement();
+    if (this.checkValue('DEFINE')) {
+      if (
+        this.peekNext().value === 'MELD' ||
+        this.peekNext().value === 'SYNC' ||
+        this.peekNext().value === 'CONSTRAINT'
+      ) {
+        this.advance();
+        this.reserved(this.peek());
+      }
+      return this.defineCollection();
+    }
     if (this.checkValue('FIND')) return this.findStatement();
     if (this.checkValue('PUT')) return this.putStatement();
     if (this.checkValue('CREATE')) return this.createStatement();
@@ -96,13 +115,59 @@ class Parser {
     if (this.checkValue('ATOMIC')) return this.atomicStatement();
     if (reservedStatements.has(this.peek().value)) this.reserved(this.peek());
     if (reservedClauses.has(this.peek().value)) this.reserved(this.peek());
-    if (this.checkValue('EDGE') || this.checkValue('POLICY')) this.reserved(this.peek());
+    if (this.checkValue('EDGE') || this.checkValue('POLICY') || this.checkValue('MELD')) this.reserved(this.peek());
     throw this.failure('COLT1101', `Expected a statement, found ${this.describe(this.peek())}.`);
+  }
+
+  private connectStatement(): ConnectStatement {
+    const start = this.consumeValue('CONNECT').span.start;
+    const alias = this.consumeIdentifier('Expected connection alias after CONNECT.');
+    this.consumeValue('AS', 'Expected AS after connection alias.');
+    const engineToken = this.consumeName('Expected engine name after AS.');
+    const engine = engineToken.value.toLowerCase();
+    this.consumeValue('(', 'Expected ( after engine name.');
+    if (this.check('string')) {
+      const stringToken = this.advance();
+      if (this.checkValue(')')) this.advance();
+      throw this.failure('COLT2023', 'connection strings must use env("VAR"), not a literal URL', stringToken);
+    }
+    this.consumeValue('ENV', 'Expected env("VAR") for connection string.');
+    this.consumeValue('(', 'Expected ( after env.');
+    const envVar = this.consumeString('Expected environment variable name in env("...").');
+    this.consumeValue(')', 'Expected ) after environment variable name.');
+    const end = this.consumeValue(')', 'Expected ) after engine configuration.').span.end;
+    return {
+      type: 'Connect',
+      alias,
+      engine,
+      envVar,
+      span: { start, end },
+    };
+  }
+
+  private defaultConnectionStatement(): DefaultConnectionStatement {
+    const start = this.consumeValue('DEFAULT').span.start;
+    this.consumeValue('CONNECTION', 'Expected CONNECTION after DEFAULT.');
+    const alias = this.consumeIdentifier('Expected connection alias after DEFAULT CONNECTION.');
+    const end = this.previous().span.end;
+    return {
+      type: 'DefaultConnection',
+      alias,
+      span: { start, end },
+    };
   }
 
   private defineCollection(): DefineCollectionStatement {
     const start = this.consumeValue('DEFINE').span.start;
-    if (this.matchValue('EDGE') || this.matchValue('POLICY')) this.reserved(this.previous());
+    if (
+      this.matchValue('EDGE') ||
+      this.matchValue('POLICY') ||
+      this.matchValue('MELD') ||
+      this.matchValue('SYNC') ||
+      this.matchValue('CONSTRAINT')
+    ) {
+      this.reserved(this.previous());
+    }
     this.consumeValue('COLLECTION', 'Expected COLLECTION after DEFINE.');
     const name = this.consumeIdentifier('Expected a collection name.');
     const mode = this.matchValue('FLEXIBLE') ? 'FLEXIBLE' : (this.matchValue('STRICT'), 'STRICT');
@@ -461,6 +526,11 @@ class Parser {
   private consumeInteger(message: string): ColtToken {
     if (this.check('integer')) return this.advance();
     throw this.failure('COLT1109', message);
+  }
+
+  private consumeString(message: string): string {
+    if (this.check('string')) return this.advance().value;
+    throw this.failure('COLT1106', message);
   }
 
   private consumeValue(value: string, message = `Expected ${value}.`): ColtToken {

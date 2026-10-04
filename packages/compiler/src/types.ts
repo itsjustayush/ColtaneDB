@@ -1,6 +1,23 @@
 import type { SourceSpan } from '@coltanedb/parser';
 
-export type PostgresBackend = 'neon' | 'supabase';
+export type EngineType =
+  | 'postgres'
+  | 'redis'
+  | 'mongodb'
+  | 'sqlite'
+  | 'libsql'
+  | 'firestore'
+  | 'd1';
+
+export type PostgresBackend = string;
+
+export interface ConnectionModel {
+  alias: string;
+  engine: EngineType;
+  envVar?: string;
+  urlEnv?: string;
+  span?: SourceSpan;
+}
 
 export interface ParameterBinding {
   kind: 'constant' | 'parameter' | 'default' | 'path';
@@ -11,7 +28,7 @@ export interface ParameterBinding {
 }
 
 export interface PlanStep {
-  backend: PostgresBackend;
+  backend: string;
   operation: 'schema.create' | 'query' | 'record.put' | 'record.create' | 'record.delete' | 'transaction';
   collection: string;
   parameterizedStatement?: string;
@@ -29,6 +46,12 @@ export interface CompilerDiagnostic {
   message: string;
   hint?: string;
   span: SourceSpan;
+}
+
+export interface CompileOptions {
+  connections?: ConnectionModel[];
+  tomlConfig?: string;
+  defaultConnection?: string;
 }
 
 export interface CompileResult {
@@ -49,7 +72,8 @@ export interface Capabilities {
 
 export interface CollectionModel {
   name: string;
-  backend: PostgresBackend;
+  backend: string;
+  engine: EngineType;
   statement: import('@coltanedb/parser').DefineCollectionStatement;
 }
 

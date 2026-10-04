@@ -12,7 +12,7 @@ import type {
   Statement,
   TypeDefinition,
 } from '@coltanedb/parser';
-import type { CollectionModel, ParameterBinding, PlanStep, PostgresBackend } from './types.ts';
+import type { CollectionModel, ParameterBinding, PlanStep } from './types.ts';
 
 function quoteIdentifier(identifier: string): string {
   return `"${identifier.replaceAll('"', '""')}"`;
@@ -293,16 +293,18 @@ export function generateStatement(statement: Statement, model: CollectionModel):
   if (statement.type === 'Put') return compileInsert(statement, model, 'put');
   if (statement.type === 'Create') return compileInsert(statement, model, 'create');
   if (statement.type === 'Delete') return compileDelete(statement, model);
-  const substeps = statement.statements.map((inner) => generateStatement(inner, model));
-  return { backend: model.backend, operation: 'transaction', collection: model.name, substeps, span: statement.span };
+  if (statement.type === 'Atomic') {
+    const substeps = statement.statements.map((inner: Statement) => generateStatement(inner, model));
+    return { backend: model.backend, operation: 'transaction', collection: model.name, substeps, span: statement.span };
+  }
+  return { backend: model.backend, operation: 'transaction', collection: model.name, span: statement.span };
 }
 
-export function backendFor(statement: DefineCollectionStatement): PostgresBackend | undefined {
+export function backendFor(statement: DefineCollectionStatement): string | undefined {
   const annotation = statement.annotations.find((item) => item.name === 'backend');
-  const value = annotation?.args[0];
-  const name = value?.type === 'FieldPath' ? value.root.toLowerCase() : undefined;
-  if (name === undefined || name === 'neon') return 'neon';
-  if (name === 'supabase') return 'supabase';
+  if (!annotation) return undefined;
+  const value = annotation.args[0];
+  if (value?.type === 'FieldPath') return value.root;
   return undefined;
 }
 

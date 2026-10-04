@@ -1,14 +1,23 @@
-(* Colt v0.1 M1 normative Tier-1 grammar. Keywords are case-insensitive. *)
+(* Colt v0.2 normative grammar. Keywords are case-insensitive. *)
 
-program          = { statement, [ ";" ] } ;
-statement        = define_collection
-                 | find_statement
-                 | put_statement
-                 | create_statement
-                 | delete_statement
-                 | atomic_statement ;
+program            = [ pragma ], { statement, [ ";" ] } ;
+pragma             = "#colt", version ;
+version            = digit, { digit }, [ ".", digit, { digit } ] ;
 
-define_collection = "DEFINE", "COLLECTION", identifier,
+statement          = connect_statement
+                   | default_connection
+                   | define_collection
+                   | find_statement
+                   | put_statement
+                   | create_statement
+                   | delete_statement
+                   | atomic_statement ;
+
+connect_statement  = "CONNECT", identifier, "AS", engine_name, "(", "ENV", "(", string, ")", ")" ;
+default_connection = "DEFAULT", "CONNECTION", identifier ;
+engine_name        = "POSTGRES" | "REDIS" | "MONGODB" | "SQLITE" | "LIBSQL" | "FIRESTORE" | "D1" ;
+
+define_collection  = "DEFINE", "COLLECTION", identifier,
                     [ "STRICT" | "FLEXIBLE" ], { annotation },
                     "{", [ field, { ",", field }, [ "," ] ], "}" ;
 field             = identifier, ":", type, [ "?" ], { annotation } ;
@@ -66,5 +75,6 @@ letter            = "A" … "Z" | "a" … "z" | "_" ;
 digit             = "0" … "9" ;
 hex               = digit | "A" … "F" | "a" … "f" ;
 
-(* LIVE, FETCH, NEAREST, SINCE, WINDOW, RELATE, DEFINE EDGE/POLICY, SET, and GET
-   are reserved; they are intentionally absent from the normative productions. *)
+(* LIVE, FETCH, NEAREST, SINCE, WINDOW, RELATE, DEFINE EDGE/POLICY, SET, GET,
+   and DEFINE MELD (... LINK | SYNC | CONSTRAINT) are reserved; they are intentionally
+   absent from the normative productions. *)

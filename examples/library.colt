@@ -1,13 +1,17 @@
--- Colt v0.1 example: a small library catalogue.
+#colt 0.2
+-- Colt v0.2 example: a small library catalogue.
 -- Run with: colt check examples/library.colt
 
-DEFINE COLLECTION authors STRICT @backend(neon) {
+CONNECT main AS postgres(env("DATABASE_URL"))
+DEFAULT CONNECTION main
+
+DEFINE COLLECTION authors STRICT {
   id: uuid @key,
   name: text @unique,
   joined: time @default(now)
 }
 
-DEFINE COLLECTION books STRICT @backend(neon) {
+DEFINE COLLECTION books STRICT {
   id: uuid @key,
   title: text,
   author: link<authors>,
