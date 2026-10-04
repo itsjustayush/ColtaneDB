@@ -62,4 +62,16 @@ describe('Colt lexer', () => {
     expect(result.diagnostics.map(({ code }) => code)).toEqual(['COLT1002', 'COLT1005']);
     expect(result.tokens.at(-1)?.kind).toBe('eof');
   });
+
+  it('accepts and ignores first-line shebang', () => {
+    const result = lex('#!/usr/bin/env colt\n#colt 0.2\nFIND books');
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.tokens.map(({ kind, value }) => [kind, value])).toEqual([
+      ['pragma', '0.2'],
+      ['keyword', 'FIND'],
+      ['identifier', 'books'],
+      ['eof', ''],
+    ]);
+  });
 });

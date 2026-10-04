@@ -121,6 +121,8 @@ class Lexer {
         this.skipLineComment();
       } else if (this.startsWith('/*')) {
         this.skipBlockComment();
+      } else if (this.startsWith('#!')) {
+        this.skipLineComment();
       } else if (this.startsWith('#colt')) {
         this.readPragma();
       } else if (char === '"') {
