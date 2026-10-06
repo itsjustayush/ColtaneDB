@@ -33,6 +33,13 @@ Colt 0.2 & BYOD Engine-Centric Architecture — Tenancy archived to `archive/ten
   - `FirebaseAdminAuthClient` verifying Google OAuth and Firebase ID tokens.
 - M3 API Layer: Hono-based API (`packages/api`) with API key generation/hashing (`colt_...`), Firebase Auth integration, project management, rate limiter, limits profiles, and query executor.
 - Official Python SDK (`coltanedb`): Version bumped to `0.2.0` (matching Colt 0.2). Added `coltanedb.guide(file=True/False)` exporting the official `COLT_GUIDE.md` language reference or printing clean text, `coltanedb.author()` displaying clickable terminal hyperlinks (OSC 8), `client.run(...)`, `client.from_file(...)`, and `QueryResult.meta`. Built distribution packages `coltanedb-0.2.0-py3-none-any.whl` and `coltanedb-0.2.0.tar.gz` verified with `twine check` (PASSED). Automated PyPI publishing workflow [`.github/workflows/publish-pypi.yml`](../.github/workflows/publish-pypi.yml) configured to execute on each `push` (running SDK test suite, build, twine check, and `skip-existing` publication via PyPI Trusted Publishing).
+- **Editor Support & `.colt` File Standardization**:
+  - Official VS Code / Cursor / VSCodium extension at [`editors/vscode`](../editors/vscode) with TextMate syntax grammar (`syntaxes/colt.tmLanguage.json`), smart bracket/comment configuration (`language-configuration.json`), code snippets (`snippets/colt.json`), and pre-packaged VSIX (`editors/vscode/colt-0.2.0.vsix`).
+  - Compiler lexer enhanced to recognize and ignore first-line shebangs (`#!/usr/bin/env colt`).
+  - Automated grammar test suite at [`tests/grammar.test.ts`](../tests/grammar.test.ts) preventing syntax regressions and validating language fixtures ([`tour.colt`](../editors/vscode/tests/fixtures/tour.colt), [`melds.colt`](../editors/vscode/tests/fixtures/melds.colt), [`shebang.colt`](../editors/vscode/tests/fixtures/shebang.colt)).
+  - Root [`.gitattributes`](../.gitattributes) configured with `*.colt linguist-language=SQL` as the immediate GitHub syntax highlighting override.
+  - OS desktop integration templates in [`os/`](../os): Linux MIME (`os/linux/colt.xml`) and `.desktop` launcher (`os/linux/colt-studio.desktop`), Windows registry association (`os/windows/colt-file-association.reg`), and macOS UTI `Info.plist.fragment` (`os/macos/Info.plist.fragment`).
+  - Comprehensive guide authored at [`docs/EDITOR_SUPPORT.md`](../docs/EDITOR_SUPPORT.md) detailing local installation, GitHub Linguist 200+ repo requirement, Tree-sitter roadmap (Neovim, Helix, Zed), and OS file association steps.
 - Dedicated Standalone Pages & Repository Policies:
   - Overhauled [`README.md`](../README.md) and [`DOCUMENTATION.md`](../DOCUMENTATION.md) fully aligned with "The Colt Language Reference" specification: 3-layer Meld Model (`Connections`, `Collections`, `Melds`), 3 kinds of melds (`LINK`, `SYNC`, `CONSTRAINT`), 4-way paradigm comparison matrix (SQL vs MongoDB vs Redis vs Colt), engines matrix, consistency guarantees, security model, and tooling.
   - `index.html`, `login.html`, `app.html`, `docs.html`, `privacy.html`, `404.html`, `PRIVACY.md`.
@@ -49,7 +56,7 @@ corepack pnpm test
 corepack pnpm build
 ```
 
-Current test suite: **167 tests passing across 15 test files** (conformance, compiler, parser, lexer, fuzz, adapters, provider-plugin, tenant-guard, tenant-manager, tenant-context, api, firebase, cross-tenant-leak, m4-console, foundation).
+Current test suite: **173 tests passing across 16 test files** (conformance, compiler, parser, lexer, grammar, fuzz, adapters, provider-plugin, tenant-guard, tenant-manager, tenant-context, api, firebase, cross-tenant-leak, m4-console, foundation).
 
 ## Decisions
 
